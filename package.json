@@ -1,0 +1,12 @@
+{
+  "name": "query",
+  "private": true,
+  "description": "편의용 루트 스크립트. 실제 프로젝트는 server/, server/web/, extension/ 에 각각 있다.",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "npm --prefix server run dev",
+    "build": "npm --prefix server/web run build && npm --prefix server run build && npm --prefix extension run build",
+    "typecheck": "npm --prefix server run typecheck && npm --prefix server/web run check && npm --prefix extension run typecheck",
+    "test": "npm --prefix server test && npm --prefix server/web test && npm --prefix extension test"
+  }
+}

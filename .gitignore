@@ -4,3 +4,6 @@ __pycache__/
 .pytest_cache/
 .env
 user/
+node_modules/
+dist/
+*.tsbuildinfo

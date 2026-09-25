@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Query 설정</title>
+    <link rel="stylesheet" href="../ui.css" />
+  </head>
+  <body class="options">
+    <main class="panel">
+      <h1>설정</h1>
+      <form onsubmit="return false">
+        <label>서버 주소
+          <input id="serverUrl" type="url" autocomplete="off" />
+        </label>
+        <label>토큰
+          <input id="authToken" type="password" autocomplete="off" />
+        </label>
+        <label>최소 질의 간격(초)
+          <input id="minInterval" type="number" min="0" max="3600" step="1" />
+        </label>
+        <div class="row">
+          <button id="test" class="btn" type="button">연결 테스트</button>
+          <button id="save" class="btn primary" type="button">저장</button>
+        </div>
+        <div id="result" role="status"></div>
+      </form>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
