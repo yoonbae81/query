@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Query{% endblock %}</title>
+  <link rel="stylesheet" href="{{ base }}/static/app.css">
+</head>
+<body data-base="{{ base }}">
+  <header class="topbar"><a href="{{ base }}/" class="brand">Query</a></header>
+  <main class="container">{% block content %}{% endblock %}</main>
+  <div id="toast" role="status" hidden></div>
+  <script src="{{ base }}/static/vendor/lucide.min.js"></script>
+  <script src="{{ base }}/static/vendor/marked.min.js"></script>
+  <script src="{{ base }}/static/vendor/purify.min.js"></script>
+  <script src="{{ base }}/static/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
