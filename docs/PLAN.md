@@ -510,7 +510,7 @@ PROVIDER_REGISTRY: dict[str, LLMProviderPort] = {
   5. 새 `storageState`를 provider별 파일에 덮어써 저장
 - **인증 메일 형식(2026-09-25 실제 메일로 확인)**: 발신 `team@mail.perplexity.ai`, 제목 `Sign in to Perplexity`, 수신은 로그인 이메일(alias `yoonbae@xcv.kr`)이며 실제 메일함은 `y@xcv.kr`. text/plain 본문에 6자리 인증번호가 (1) 로그인 링크의 `token=XXXXXX` 파라미터와 (2) 본문 단독 라인에 동일하게 들어 있고, 링크와 코드는 **5분간** 유효. 링크(`/api/auth/callback/email?...&token=`)를 직접 여는 방식도 가능하나, MVP는 코드 입력 방식을 기본으로 하고 셀렉터 스파이크에서 더 안정적인 쪽을 택한다.
 - **로그인 화면 셀렉터(2026-09-25 관찰)**: 쿠키 배너 `button "Only necessary"` → `button "Sign In"` → `input[name="email"]` 입력 → `button "Continue with email"` → 6칸 코드 입력(`aria-label="Digit 1 of 6"` … `"Digit 6 of 6"`, 각 maxlength=1; 첫 칸 클릭 후 6자리를 순차 타이핑하면 자동 진행/`button "Confirm"`) → 로그인 후 URL에 `pplx_account=` 파라미터. 질의 입력창은 `#ask-input`(로그인 후 홈).
-- **⚠ Cloudflare 봇 검증(2026-09-25 관찰)**: 로그인 과정과 직후에 "Verify you are human"(Turnstile) 체크박스가 반복 노출되었고, 저장된 `storageState`로 재접속하면 headless는 물론 headed Playwright Chromium도 "Just a moment..." 검증 화면에서 멈춘다. 즉 §6.4의 "헤드리스 + storageState 재사용" 전제가 성립하지 않는다. 대응 방침은 §10 참고(결정 필요).
+- **⚠ Cloudflare 봇 검증(2026-09-25 관찰)**: 로그인 과정과 직후에 "Verify you are human"(Turnstile) 체크박스가 반복 노출되었고, 저장된 `storageState`로 재접속하면 headless는 물론 headed Playwright Chromium도 "Just a moment..." 검증 화면에서 멈춘다. 즉 §6.4의 "헤드리스 + storageState 재사용" 전제가 성립하지 않는다. 대응 방침은 §10 참고(C안 결정: patchright 기반 사용자 구현 완료).
 - Gmail API 사용을 위해 Google Cloud Console에 OAuth 클라이언트 등록 필요 (Gmail readonly scope), 최초 1회 사용자 동의(OAuth consent) 필요.
 - **동시성 주의**: `MAX_CONCURRENT_WORKERS`로 동일 provider에 여러 요청이 동시 처리될 수 있으므로, 재로그인 절차는 **provider별 `asyncio.Lock`**으로 감싸 동시에 두 개의 재로그인 시도가 겹치지 않도록 한다 (한 태스크가 재로그인 중이면 나머지는 대기 후 갱신된 `storageState`를 재사용).
 
@@ -687,6 +687,7 @@ query/
 
 ## 10. 미확정/향후 검토 사항
 
+- **브라우저 스텔스(§6.4 Cloudflare 대응 — C안 결정, 구현 완료)**: `BROWSER_PROVIDER=custom`으로 선택하며 `src/adapters/outbound/llm/custom_browser.py`가 사용된다. `CustomBrowserProvider`는 patchright(Playwright 드롭인, CDP 유출 제거) + 시스템 Chrome 채널(`channel="chrome"`, 없으면 patchright chromium으로 폴백), `no_viewport`, custom UA/헤더 미지정의 patchright 권장 설정으로 브라우저를 띄우고 provider별 storageState를 적용/저장한다. `CustomChallengeHandler.ensure_clear()`는 "Just a moment..." interstitial 자동 통과 대기 → `challenges.cloudflare.com` iframe의 체크박스를 사람 같은 마우스 이동으로 클릭(최대 3회) → 그래도 실패하면 `BrowserChallengeError`를 발생시켜 §6.5 재시도/실패 정책을 따른다. patchright는 Chromium 전용이며 headed(`PLAYWRIGHT_HEADLESS=false`)가 통과율이 가장 높다. 2026-09-25 검증: headed 시 대부분 챌린지 없이 즉시 통과하나, CF의 IP 리스크 스코어링에 따라 관리형 챌린지가 루프되며 클릭이 거부되는 구간도 관찰됨 — 데이터센터 IP(§8.2 운영 서버)에서는 특히 그럴 수 있으므로 재시도 정책으로 흡수한다.
 - **구현 착수 전 스파이크(사람이 직접 관찰 후 이 문서에 기록)**
   - Perplexity: 입력창/전송/답변 영역/출처 셀렉터, 로그인 화면 흐름
   - Gmail: Perplexity 인증 메일의 발신자·제목·인증번호 정규식

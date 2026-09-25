@@ -9,6 +9,8 @@ mcp>=1.2
 
 # Browser automation
 playwright>=1.47
+# BROWSER_PROVIDER=custom 용 스텔스 브라우저 (patchright install chromium)
+patchright>=1.52
 
 # Gmail API (auth code adapter)
 google-api-python-client>=2.140
