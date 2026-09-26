@@ -418,7 +418,7 @@ query/
 ### 14.3 남은 일
 1. **Perplexity 셀렉터 확정(스파이크, §7)**: 입력창(`#ask-input`)과 로그인 판별은 관찰로 확인했으나, 전송 버튼·생성 중 표시(중지 버튼)·답변 본문·출처 셀렉터는 추정값이다(`extension/src/adapters/outbound/providers/perplexity/selectors.ts`에 확인됨/추정 구분 표기). 확장을 실제 Perplexity 탭에서 돌리면 `selector_missing` 오류가 어떤 셀렉터인지 메시지로 알려 주고, 콘솔 스니펫(홈/생성 중/완료 3상태) 결과로 확정한다. 입력창 주입(`execCommand`/paste)이 실제 에디터에서 인식되는지, 화면에 안 보이는 탭에서 답변 감지가 동작하는지도 이때 확인한다.
 2. 실제 서비스 등록 검증(`m`에서 `setup-env.sh` → `install-launchd.sh`), 사설망(WireGuard) 경유 확장 접속.
-3. 확장 아이콘(현재 기본 아이콘).
+3. ~~확장 아이콘~~ — 완료(2026-09-26): `extension/scripts/make-icons.mjs`로 생성한 `static/icons/*.png`, 빌드가 manifest에 등록.
 4. 토큰 인증: 확장 WebSocket은 `AUTH_TOKEN`으로 동작하며, REST/웹 UI 토큰은 향후(§4.1).
 5. Claude/ChatGPT/Gemini 사이트 모듈(확장 `providers/`에 추가, §12.4).
 

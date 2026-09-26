@@ -39,9 +39,11 @@ async function main(): Promise<void> {
   await cp(at("static/popup.html"), resolve(dist, "popup/popup.html"));
   await cp(at("static/options.html"), resolve(dist, "options/options.html"));
   await cp(at("static/ui.css"), resolve(dist, "ui.css"));
+  await cp(at("static/icons"), resolve(dist, "icons"), { recursive: true });
 
   // manifest.json은 provider 등록부에서 생성한다: 새 사이트를 추가해도 매니페스트를 손대지 않는다 (PLAN2 §12.4)
   const pkg = JSON.parse(await readFile(at("package.json"), "utf8")) as { version: string };
+  const icons = { 16: "icons/16.png", 32: "icons/32.png", 48: "icons/48.png", 128: "icons/128.png" };
   const matches = PROVIDERS.flatMap((p) => p.matches);
   const manifest = {
     manifest_version: 3,
@@ -52,7 +54,8 @@ async function main(): Promise<void> {
     permissions: ["storage", "alarms", "scripting"],
     host_permissions: matches,
     background: { service_worker: "background.js", type: "module" },
-    action: { default_title: "Query", default_popup: "popup/popup.html" },
+    icons,
+    action: { default_title: "Query", default_popup: "popup/popup.html", default_icon: icons },
     options_ui: { page: "options/options.html", open_in_tab: true },
     content_scripts: PROVIDERS.map((p) => ({ matches: p.matches, js: [`content/${p.id}.js`], run_at: "document_idle" })),
   };

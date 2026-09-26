@@ -9,7 +9,7 @@ PLAN2.md(브라우저 확장 방식)의 후속 문서다. PLAN2가 다루는 구
 | 서버(REST·SSE·확장 WebSocket·임대·MCP), 웹 UI, 확장 코어, Perplexity 사이트 모듈 | 구현·테스트 완료 (PLAN2 §14) |
 | Perplexity 출처(Links 탭 패널) 셀렉터 | **미확정** — Links 탭을 연 상태의 콘솔 스니펫(`links`) 캡처 대기. 현재는 radix `aria-controls` 기반 추정 + 폴백 |
 | 실제 서비스 등록(`m`의 launchd) | 미검증 |
-| 확장 아이콘 | 기본 아이콘 |
+| 확장 아이콘 | ✅ 완료(2026-09-26) |
 
 PLAN2의 남은 항목은 이 문서의 작업과 병행하며 서로를 막지 않는다.
 
