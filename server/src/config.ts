@@ -59,7 +59,7 @@ export function loadSettings(env: Env = process.env, root: string = REPO_ROOT): 
   const supportedProviders = ["perplexity", "claude", "chatgpt", "gemini"]; // 확장에 콘텐츠 스크립트가 있는 provider (PLAN3 §6)
   return {
     host: env.QUERY_HOST || "127.0.0.1",
-    port: int(env.QUERY_PORT, 8000),
+    port: int(env.QUERY_PORT, 4444),
     basePath: (env.BASE_PATH ?? "").replace(/\/+$/, ""),
     supportedProviders,
     defaultProviders: list(env.DEFAULT_PROVIDERS, ["perplexity"]),

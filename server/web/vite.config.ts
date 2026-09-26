@@ -14,7 +14,7 @@ export default defineConfig({
       },
     },
   ],
-  server: { proxy: { "/api": "http://127.0.0.1:8000" } },
+  server: { proxy: { "/api": "http://127.0.0.1:4444" } },
   build: { outDir: "dist", emptyOutDir: true },
   resolve: process.env.VITEST ? { conditions: ["browser"] } : undefined,
   test: {

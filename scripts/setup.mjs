@@ -50,6 +50,6 @@ if (!existsSync(".env")) {
 
 console.log(`
 완료. 다음 단계:
-  개발 실행:     npm run dev              (server: http://127.0.0.1:8000)
+  개발 실행:     npm run dev              (server: http://127.0.0.1:4444)
   서비스 등록:   sudo scripts/install-systemd.sh  (Linux)  또는  scripts/install-launchd.sh  (macOS)
   확장 설치:     브라우저 확장 관리 → 개발자 모드 → '압축해제된 확장 로드' → ${resolve("extension/dist")}`);

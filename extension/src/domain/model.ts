@@ -42,7 +42,7 @@ export interface TabRef {
 }
 
 export interface ExtensionSettings {
-  /** 예: https://host/query, http://localhost:8000 */
+  /** 예: https://host/query, http://localhost:4444 */
   serverUrl: string;
   /** 향후 인증용. 비어 있으면 무인증 */
   authToken: string;

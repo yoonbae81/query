@@ -424,6 +424,6 @@ query/
 
 ### 14.4 실행 방법
 - 설치/빌드: `npm run setup` (= `scripts/setup-env.sh`)
-- 개발 서버: `npm run dev` (http://127.0.0.1:8000), 웹 UI 개발은 `npm --prefix server/web run dev`
+- 개발 서버: `npm run dev` (http://127.0.0.1:4444), 웹 UI 개발은 `npm --prefix server/web run dev`
 - 전체 테스트: `npm test`, 타입 검사: `npm run typecheck`
 - 확장 설치: `extension/dist`를 브라우저의 "압축해제된 확장 로드"로 등록 → 설정 페이지에서 서버 주소 입력 → 팝업에서 ON

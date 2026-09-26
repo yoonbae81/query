@@ -11,7 +11,7 @@
 
 ```bash
 npm run setup      # 의존성 설치, 빌드, user/ 와 .env 준비 (Node 26 필요)
-npm run dev        # 서버 실행: http://127.0.0.1:8000
+npm run dev        # 서버 실행: http://127.0.0.1:4444
 npm test           # 전체 테스트
 ```
 
