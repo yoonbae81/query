@@ -1,3 +1,4 @@
+import { getToken, setToken } from "./auth";
 import type {
   CategoryInfo,
   ExtensionStatus,
@@ -16,8 +17,28 @@ export function apiUrl(path: string): string {
 
 export class ApiError extends Error {}
 
+/** 인증 헤더를 붙여 호출한다. 401이면 API 토큰을 물어 저장한 뒤 한 번 다시 시도한다. */
+async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const send = () => {
+    const token = getToken();
+    const headers = new Headers(init.headers);
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    return fetch(url, { ...init, headers });
+  };
+  let res = await send();
+  if (res.status === 401) {
+    const entered = typeof window.prompt === "function" ? window.prompt("서버 API 토큰을 입력하세요") : null;
+    if (entered?.trim()) {
+      setToken(entered.trim());
+      res = await send();
+      if (res.status === 401) setToken("");
+    }
+  }
+  return res;
+}
+
 async function request<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  const res = await fetch(apiUrl(path), {
+  const res = await authFetch(apiUrl(path), {
     method: init.method ?? "GET",
     headers: init.body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
@@ -33,6 +54,19 @@ async function request<T>(path: string, init: { method?: string; body?: unknown 
     throw new ApiError(message ?? `요청 실패 (${res.status})`);
   }
   return data as T;
+}
+
+/** 저장된 마크다운 파일을 인증 헤더와 함께 받아 브라우저 다운로드로 저장한다(<a href>는 헤더를 못 붙인다). */
+async function downloadFile(path: string): Promise<void> {
+  const res = await authFetch(apiUrl(path));
+  if (!res.ok) throw new ApiError(`다운로드 실패 (${res.status})`);
+  const name = /filename*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(res.headers.get("Content-Disposition") ?? "")?.[1];
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name ? decodeURIComponent(name) : "answer.md";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 const enc = encodeURIComponent;
@@ -74,6 +108,6 @@ export const api = {
   /** provider 결과 하나를 삭제한다. 마지막 결과였다면 query_deleted=true */
   deleteResult: (id: string, resultId: string) =>
     request<{ query_deleted: boolean }>(`/queries/${enc(id)}/results/${enc(resultId)}`, { method: "DELETE" }),
-  /** 저장된 질문/답변 마크다운 파일 내려받기 링크 */
-  downloadUrl: (id: string, resultId: string) => apiUrl(`/queries/${enc(id)}/results/${enc(resultId)}/download`),
+  /** 저장된 질문/답변 마크다운 파일 내려받기 */
+  download: (id: string, resultId: string) => downloadFile(`/queries/${enc(id)}/results/${enc(resultId)}/download`),
 };

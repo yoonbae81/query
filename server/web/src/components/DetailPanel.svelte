@@ -8,6 +8,7 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
 
   import { api, apiUrl } from "../lib/api";
+  import { getToken } from "../lib/auth";
   import { fmtTime } from "../lib/format";
   import { router } from "../lib/router.svelte";
   import { app } from "../lib/stores.svelte";
@@ -64,7 +65,8 @@
       if (!poll) poll = setInterval(() => load(queryId).catch(() => {}), 5000);
     };
     const connect = () => {
-      if (!("EventSource" in window)) return startPolling();
+      // EventSource는 인증 헤더를 못 붙이므로 API 토큰을 쓰는 경우에는 폴링한다
+      if (!("EventSource" in window) || getToken()) return startPolling();
       es = new EventSource(apiUrl(`/queries/${encodeURIComponent(queryId)}/stream`));
       const onEvent = (ev: MessageEvent) => {
         merge(JSON.parse(ev.data) as ResultEvent);
@@ -221,13 +223,12 @@
               <button class="icon-btn" onclick={() => copy(current.answer)} title={copied ? "복사 완료" : "답변 복사"} aria-label="답변 복사">
                 {#if copied}<Check size={15} />{:else}<Copy size={15} />{/if}
               </button>
-              <a
+              <button
                 class="icon-btn dl"
-                href={api.downloadUrl(id, current.result_id)}
-                download
+                onclick={() => api.download(id, current.result_id).catch((e) => toast.show((e as Error).message, true))}
                 title="마크다운 파일 다운로드"
                 aria-label="마크다운 파일 다운로드"
-              ><Download size={15} /></a>
+              ><Download size={15} /></button>
             {/if}
             <DeleteButton
               label="{providers.find((p) => p.id === selected)?.name ?? selected} 결과 삭제"
