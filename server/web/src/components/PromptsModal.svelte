@@ -38,7 +38,7 @@
       const p = await api.getPrompt(name);
       content = original = p.content;
     } catch (e) {
-      if (e instanceof ApiError) content = original = ""; // 아직 프롬프트 파일이 없는 카테고리
+      if (e instanceof ApiError) content = original = ""; // 아직 답변 작성 지침 파일이 없는 카테고리
       else toast.show((e as Error).message, true);
     } finally {
       loading = false;
@@ -99,7 +99,7 @@
   });
 </script>
 
-<Modal title="프롬프트 관리" icon={ScrollText} size="xl" {onclose}>
+<Modal title="카테고리별 답변 작성 지침" icon={ScrollText} size="xl" {onclose}>
   <div class="layout">
     <aside class="list">
       <div class="add">
@@ -119,7 +119,7 @@
           <li>
             <button class="item" class:active={name === selected} onclick={() => select(name)}>
               <span class="name mono">{name}</span>
-              {#if hasPrompt(name)}<span class="badge purple">프롬프트</span>{:else if name !== "general"}<span class="badge gray">general 적용</span>{/if}
+              {#if hasPrompt(name)}<span class="badge purple">지침</span>{:else if name !== "general"}<span class="badge gray">general 적용</span>{/if}
             </button>
           </li>
         {/each}
@@ -132,7 +132,7 @@
         {#if dirty}<span class="badge yellow">수정됨</span>{/if}
         {#if !isGeneral && !hasPrompt(selected) && !dirty}<span class="badge gray">general 적용</span>{/if}
       </div>
-      <textarea bind:value={content} disabled={loading} aria-label="{selected} 시스템 프롬프트" spellcheck="false"></textarea>
+      <textarea bind:value={content} disabled={loading} aria-label="{selected} 답변 작성 지침" spellcheck="false"></textarea>
       <div class="actions">
         {#if !isGeneral}
           <button class="danger" onclick={remove} disabled={!hasPrompt(selected)}>

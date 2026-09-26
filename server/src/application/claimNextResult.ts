@@ -2,7 +2,7 @@ import type { Job } from "../domain/entities";
 import type { PromptStorePort, QueryRepositoryPort } from "../domain/ports";
 import { resolvePrompt } from "./prompts";
 
-/** 확장의 claim 요청 처리: 원자적 claim + 시스템 프롬프트 스냅샷 + 입력문 조합 (PLAN2 §4.2) */
+/** 확장의 claim 요청 처리: 원자적 claim + 답변 작성 지침 스냅샷 + 입력문 조합 (PLAN2 §4.2) */
 export class ClaimNextResult {
   constructor(
     private readonly repo: QueryRepositoryPort,
@@ -25,13 +25,13 @@ export class ClaimNextResult {
       await this.repo.markFailed(result.id, `query를 찾을 수 없습니다: ${result.queryId}`);
       return null;
     }
-    const { content } = await resolvePrompt(this.prompts, query.category); // 카테고리 프롬프트, 없으면 general
+    const { content } = await resolvePrompt(this.prompts, query.category); // 카테고리 답변 작성 지침, 없으면 general
     await this.repo.setSystemPromptSnapshot(result.id, content);
-    const system = content.trim();
+    const system = content.trim(); // 답변 작성 지침
     return {
       resultId: result.id,
       provider: result.provider,
-      prompt: system ? `${system}\n\n---\n\n${query.queryText}` : query.queryText,
+      prompt: system ? `${query.queryText}\n\n---\n\n${system}` : query.queryText, // 질문 먼저, 답변 작성 지침은 뒤
       leaseSeconds: this.leaseSeconds,
     };
   }

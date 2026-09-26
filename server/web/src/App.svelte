@@ -33,7 +33,7 @@
 
 <style>
   .app-container {
-    max-width: 1440px; width: 100%; margin: 0 auto; padding: 16px 24px 24px;
+    width: 100%; padding: 16px 24px 24px; /* 화면 폭을 모두 쓴다 (DESIGN.md §6.1) */
     height: calc(100dvh - 56px - var(--sat)); overflow: hidden;
   }
   @media (max-width: 900px) {

@@ -27,7 +27,7 @@ describe("카테고리 이름", () => {
   });
 });
 
-describe("카테고리별 시스템 프롬프트", () => {
+describe("카테고리별 답변 작성 지침", () => {
   it("카테고리 프롬프트가 있으면 그것을, 없으면 general을 적용하고 스냅샷에 남긴다", async () => {
     const c = await makeCore();
     await c.prompts.put("general", "GENERAL");
@@ -37,9 +37,9 @@ describe("카테고리별 시스템 프롬프트", () => {
     const tech = await c.submit.submit("q2", undefined, undefined, "tech"); // 프롬프트 없는 카테고리
     const plain = await c.submit.submit("q3");
 
-    expect((await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))?.prompt).toBe("LEGAL\n\n---\n\nq1");
-    expect((await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))?.prompt).toBe("GENERAL\n\n---\n\nq2");
-    expect((await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))?.prompt).toBe("GENERAL\n\n---\n\nq3");
+    expect((await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))?.prompt).toBe("q1\n\n---\n\nLEGAL");
+    expect((await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))?.prompt).toBe("q2\n\n---\n\nGENERAL");
+    expect((await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))?.prompt).toBe("q3\n\n---\n\nGENERAL");
     expect((await c.repo.getResult(legal.results[0]!.id))?.systemPromptSnapshot).toBe("LEGAL");
     expect((await c.repo.getResult(tech.results[0]!.id))?.systemPromptSnapshot).toBe("GENERAL");
     expect(plain.query.category).toBe("general");
@@ -55,7 +55,7 @@ describe("카테고리별 시스템 프롬프트", () => {
     const c = await makeCore();
     await c.submit.submit("q", undefined, undefined, "legal");
     await c.prompts.put("legal", "V2");
-    expect((await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))?.prompt).toBe("V2\n\n---\n\nq");
+    expect((await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))?.prompt).toBe("q\n\n---\n\nV2");
   });
 
   it("조회/저장/삭제: general은 삭제 불가, 없는 프롬프트는 404, 잘못된 이름은 400", async () => {
@@ -116,7 +116,7 @@ describe("목록 필터와 답변 파일", () => {
 
     const file = await c.answerFile.execute(s.query.id, job.resultId);
     expect(file.filename).toMatch(/^\d{6}_[a-z0-9]{6}_perplexity\.md$/);
-    expect(file.content).toContain("## System Prompt\nLEGAL");
+    expect(file.content).toContain("## 답변 작성 지침\nLEGAL");
     expect(file.content).toContain("category: legal");
     expect(readFileSync(join(c.dir, "answers", file.filename), "utf8")).toBe(file.content);
 
@@ -180,6 +180,16 @@ describe("REST: 카테고리·프롬프트·통계·다운로드", () => {
     const bad = await srv.app.inject({ method: "POST", url: "/api/v1/queries", payload: { query: "q", category: "../x" } });
     expect(bad.statusCode).toBe(400);
     expect((await srv.app.inject("/api/v1/queries?category=%2E%2E")).statusCode).toBe(400);
+  });
+
+  it("category를 생략하거나 비우면 개별/벌크/ask 모두 general이다", async () => {
+    srv = await makeServer();
+    const one = (await srv.app.inject({ method: "POST", url: "/api/v1/queries", payload: { query: "a" } })).json().query_id as string;
+    const blank = (await srv.app.inject({ method: "POST", url: "/api/v1/queries", payload: { query: "b", category: "  " } })).json().query_id as string;
+    const bulk = (await srv.app.inject({ method: "POST", url: "/api/v1/queries/bulk", payload: { queries: ["c", "d"] } })).json();
+    const ask = (await srv.app.inject({ method: "POST", url: "/api/v1/ask?timeout_seconds=1", payload: { question: "e" } })).json().query_id as string;
+    const ids = [one, blank, ...bulk.items.map((i: { query_id: string }) => i.query_id), ask];
+    for (const id of ids) expect((await srv.app.inject(`/api/v1/queries/${id}`)).json().category).toBe("general");
   });
 
   it("프롬프트 API: 생성·조회·수정·삭제와 목록", async () => {

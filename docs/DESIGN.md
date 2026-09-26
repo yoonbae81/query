@@ -13,7 +13,7 @@ Retriever(`/opt/retriever`)와 Query(이 저장소)의 웹 UI가 공유하는 �
 3. **색은 의미를 전달할 때만**: 강조색(파란색)은 주 동작·선택·포커스에만, 상태 색(초록·노랑·빨강)은 상태 표시에만 쓴다.
 4. **레이블만, 설명 문구 없음**: 제목이나 항목 레이블 아래에 부연 설명(helper/caption)을 넣지 않는다. 문구 자체로 뜻이 전달되게 짓는다. (§9)
 5. **숫자·ID·시각·경로는 고정폭 글꼴**로 표시해 정렬과 스캔을 쉽게 한다.
-6. **한 화면에서 끝나게**: 목록과 상세를 좌우 2단으로 보여 주고, 좁은 화면에서만 번갈아 보여 준다.
+6. **한 화면에서 끝나게**: 목록과 상세를 좌우 2단으로 보여 주고, 좁은 화면에서는 **위아래로 쌓는다**(쿼리 바 → 목록 → 상세). 화면 폭은 **모두 사용**한다(폭 상한 없음, §6.1).
 7. **터치와 키보드 모두 1급**: 클릭 영역 최소 34~40px, 포커스 링, Esc/Enter 지원.
 
 ## 2. 디자인 토큰
@@ -70,7 +70,7 @@ Retriever(`/opt/retriever`)와 Query(이 저장소)의 웹 UI가 공유하는 �
 ### 2.5 브레이크포인트
 | 폭 | 변화 |
 |---|---|
-| `≤ 900px` (Query) | 목록/상세 2단 → 번갈아 표시, 쿼리 바 세로 정렬, 헤더 pill 숨김 |
+| `≤ 900px` (Query) | 목록/상세 2단 → **위아래로 쌓기**(페이지가 스크롤됨), 쿼리 바 세로 정렬, 헤더 pill 숨김 |
 | `≤ 768px` | **입력창 글꼴 16px**(iOS 자동 확대 방지), Retriever는 쿼리 바 세로 정렬 |
 | `≤ 640px` | 모달이 하단 시트로 전환, 헤더 상태 배지·pill 숨김, 링크 폭 축소 |
 | `max-height ≤ 720px` (Retriever) | 낮은 화면에서도 쿼리 바를 세로 정렬 |
@@ -104,6 +104,7 @@ Retriever(`/opt/retriever`)와 Query(이 저장소)의 웹 UI가 공유하는 �
 | `icon-btn` | 투명 + 1px 테두리, `--text-secondary`, hover 시 배경 `--bg-surface-hover` | 36×36 | 헤더 액션(업로드, 벌크, 테마). 활성 상태 `.active`는 테두리·아이콘 `--accent` |
 | `icon-btn-ghost` | 테두리 없음, `--text-muted`, hover 시 `--text-primary` | 34~36 | 모달 닫기, 페이지 이동, 새로고침 |
 | `copy-btn` | 테두리 있는 정사각 | 32×32(mini 26×26) | 복사·다운로드. 복사 후 1.5초간 체크 아이콘 |
+| `delete-btn` | 투명 + 1px 테두리 + 휴지통 아이콘(필요하면 문구 "전체 삭제"), hover 시 빨간 글자/테두리 | 높이 32 | 삭제. **첫 클릭은 "삭제 확인"(빨간 채움)으로 바뀌고 3초 안에 다시 눌러야 실행**, 실행 중·처리 중에는 비활성 + 이유 툴팁. 범위가 다른 삭제(질의 전체 vs 항목 하나)는 위치와 문구로 구분한다: **질의 삭제**(문구 포함)는 우측 패널 헤더와 목록 항목에, **결과 삭제**(아이콘)는 그 결과의 카드 헤더에 둔다. 목록 항목의 삭제 버튼은 hover/포커스 때만 보이고 터치 기기에서는 항상 보인다 |
 
 아이콘 버튼은 항상 `aria-label`과 `title`을 둔다(아이콘만 있기 때문).
 
@@ -148,8 +149,8 @@ Query의 provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg
 - 패널 헤더: **높이 48px**(필터가 줄바꿈되면 min-height), 패딩 `0 16px`, 아래 1px `--border`, 배경 `--bg-overlay`. 왼쪽: 제목(14/600) + 보조 메타(글자 수 등 12px 고정폭), 오른쪽: 복사/다운로드 같은 액션.
 - 본문 영역은 `flex: 1; overflow-y: auto; min-height: 0`으로 **패널 안에서만 스크롤**한다(페이지 자체는 스크롤하지 않는다).
 
-### 5.9 목록 항목 (Query 질의 내역)
-세로 flex, 패딩 `12px 16px`, 아래 1px `--border`. 1행: 질문(600, 2줄 말줄임) + 오른쪽에 상태 배지들. 2행: 답변 미리보기(13px `--text-secondary`, 2줄 말줄임). 3행: 메타(카테고리 purple 배지 + 고정폭 시각). hover 배경 `--bg-surface-hover`. **선택 항목**은 배경 `--bg-surface-hover` + 왼쪽 3px `--accent` 안쪽 띠(`box-shadow: inset 3px 0 0`).
+### 5.9 목록 항목 (Query 질의)
+세로 flex, 패딩 `12px 16px`, 아래 1px `--border`. 1행: 질문(600, 2줄 말줄임) + 오른쪽에 상태 배지들. 2행: 답변 미리보기(13px `--text-secondary`, 2줄 말줄임). 3행: 메타(카테고리 purple 배지 + 고정폭 시각). hover 배경 `--bg-surface-hover`. 오른쪽 아래에 삭제 아이콘 버튼(hover/포커스 시 표시, §5.1 `delete-btn`). **선택 항목**은 배경 `--bg-surface-hover` + 왼쪽 3px `--accent` 안쪽 띠(`box-shadow: inset 3px 0 0`).
 
 ### 5.10 표 (Retriever 문서 보관소)
 `font-size 13px; border-collapse: collapse`. 헤더 셀 `--text-muted`/500, 셀 패딩 `8px 16px`, 행 사이 1px `--border`, 세로 가운데. 이름 열은 굵게(500)·말줄임, 이름 버튼 hover 시 `--accent` + 밑줄, 숫자/경로 열은 고정폭 12px `--text-secondary`, 동작 열은 오른쪽 정렬. 빈 표는 중앙 `--text-muted` 패딩 32. 페이지네이션은 오른쪽 정렬 `‹ 1 / 12 ›`(고정폭 12px).
@@ -183,11 +184,13 @@ Query의 provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg
 ### 6.1 앱 셸
 ```
 ┌ 헤더 (sticky, 56px + safe-area) ────────────────────────────────────┐
-├ .app-container (max-width 1440, 좌우 24, 위 16~24) ─────────────────┤
+├ .app-container (전체 폭, 좌우 24, 위 16~24) ────────────────────────┤
 │  쿼리 바 (카드)                                                      │
 │  ┌ 좌 패널 ┐ ┌ 우 패널 ─────────────┐   ← 2단 그리드, 나머지 높이 채움 │
 └──────────────────────────────────────────────────────────────────────┘
 ```
+- **폭 정책**: 본문은 **화면 폭을 모두 쓴다**(`width: 100%`, 좌우 패딩 24). 폭 상한(`max-width`)을 두지 않아 와이드/울트라와이드 모니터에서도 목록과 답변 패널이 함께 넓어진다. 2단 그리드는 비율(`0.8fr / 1.2fr`)로 늘어나므로 별도 처리가 필요 없다. Retriever는 예외로 `max-width: 1440px`(가운데 정렬)을 쓴다 — 검색 결과 패널이 너무 넓어지면 읽기 어려운 도구에는 상한을 두고, 목록·비교 중심 도구(Query)는 전체 폭을 쓴다. 상한이 필요하면 `.app-container`에 `max-width`와 `margin: 0 auto`만 추가하면 된다.
+- 다만 **글이 길게 이어지는 영역(답변 본문)은 패널 안에서 읽기 좋은 줄 길이**가 되도록 패널 폭 비율로 제한된다. 본문을 더 좁히려면 `.markdown`에 `max-width: 78ch`를 준다.
 - 데스크톱에서 `.app-container`는 `height: calc(100dvh - 56px - var(--sat)); overflow: hidden`이고, 그 안의 워크스페이스가 `flex: 1; min-height: 0`으로 남은 높이를 채운다. 각 패널이 자체 스크롤한다. 모바일에서는 높이 제한을 풀고 자연 스크롤.
 
 ### 6.2 헤더
@@ -202,7 +205,11 @@ Query의 provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg
 ### 6.4 2단 워크스페이스
 - 그리드 `grid-template-columns: 0.8fr 1.2fr`(Query는 좌측 최소 340px), `gap: 16px`. **좌: 목록/근거, 우: 상세/답변**(Retriever는 좌 "모델 답변", 우 "출처").
 - Retriever는 결과가 나온 뒤에만 그리드를 보이고 높이를 `calc(100dvh - 56px - 48px - 64px)`(최소 520)로 고정한다. Query는 처음부터 보이며 남은 높이를 채운다.
-- 좁은 화면: 1열로 전환. Query는 **목록 ↔ 상세를 번갈아 표시**(상세에는 `‹` 뒤로 버튼이 나타나고 쿼리 바는 숨김). 선택 상태는 URL(`/queries/{id}`)에 반영해 새로고침·공유가 되게 한다.
+- 좁은 화면(≤900px): 1열로 전환하고 **위아래로 쌓는다** — 쿼리 바 → 목록 → 상세 순서. Retriever도 결과 그리드를 1열로 쌓는다.
+  - 목록은 고정 높이(`min(60dvh, 560px)`, 최소 320)의 자체 스크롤 영역, 상세는 내용만큼 자라며 **페이지 자체가 스크롤**된다(`.workspace { height: auto }`).
+  - 질의를 고르면(또는 `/queries/{id}` 링크로 진입하면) **상세 위치로 부드럽게 스크롤**한다(`scrollIntoView({ block: "start" })`, 상세에 `scroll-margin-top: 68px`로 고정 헤더 아래에 맞춤). 상세가 로딩 중이어도 맨 위로 정렬되도록 선택 상태의 상세 영역에 `min-height: calc(100dvh - 80px)`을 준다.
+  - 선택 전에는 빈 상세 영역(“질의를 선택하세요”)을 숨긴다. 뒤로 버튼은 두지 않는다(목록이 바로 위에 있다).
+  - 선택 상태는 URL(`/queries/{id}`)에 반영해 새로고침·공유가 되게 한다.
 
 ## 7. 아이콘 (Lucide)
 - 패키지: Svelte `@lucide/svelte`(Retriever는 `lucide-svelte`). **아이콘별 deep import**를 쓴다(`import Send from "@lucide/svelte/icons/send"`). 배럴 import는 개발/테스트 변환이 수천 모듈로 느려진다.
@@ -230,7 +237,7 @@ Query의 provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg
 - [ ] 320~390px에서 가로 스크롤이 없다(헤더 링크는 자체 가로 스크롤).
 - [ ] 입력창 글꼴이 모바일에서 16px 이상이다.
 - [ ] 모달이 ≤640px에서 하단 시트로 바뀐다.
-- [ ] 목록 ↔ 상세 전환에서 뒤로 버튼과 URL이 동작한다.
+- [ ] 모바일에서 쿼리 바 → 목록 → 상세가 위아래로 쌓이고, 질의를 고르면 상세 위치로 스크롤되며 URL(딥링크)이 동작한다.
 - [ ] iOS: `viewport-fit=cover` + 안전 영역 패딩, 핀치 줌 제스처 방지(필요 시).
 - [ ] 라이트/다크 양쪽에서 배지·출처 번호·에러 배너 대비가 충분하다.
 
@@ -427,12 +434,19 @@ export const nextThemeMode = (m: ThemeMode): ThemeMode => THEME_ORDER[(THEME_ORD
   </div>
 </main>
 <style>
-  .app-container { max-width: 1440px; margin: 0 auto; padding: 16px 24px 24px; height: calc(100dvh - 56px - var(--sat)); overflow: hidden; }
+  .app-container { width: 100%; padding: 16px 24px 24px; height: calc(100dvh - 56px - var(--sat)); overflow: hidden; } /* 전체 폭. 상한이 필요하면 max-width + margin: 0 auto */
   .workspace { display: flex; flex-direction: column; gap: 16px; height: 100%; min-height: 0; }
   .query-bar { display: flex; gap: 12px; align-items: flex-end; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
   .grid { display: grid; grid-template-columns: minmax(340px, .8fr) 1.2fr; gap: 16px; flex: 1; min-height: 0; }
   .panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
-  @media (max-width: 900px) { .app-container { height: auto; overflow: visible; padding: 12px; } .grid { grid-template-columns: 1fr; } }
+  /* 좁은 화면: 위아래로 쌓고 페이지가 스크롤된다. 질의를 고르면 상세로 scrollIntoView (§6.4) */
+  @media (max-width: 900px) {
+    .app-container { height: auto; overflow: visible; padding: 12px; }
+    .workspace { height: auto; }
+    .grid { grid-template-columns: 1fr; flex: none; }
+    .list-col { height: min(60dvh, 560px); min-height: 320px; }
+    .detail-col { height: auto; scroll-margin-top: 68px; }
+  }
 </style>
 ```
 

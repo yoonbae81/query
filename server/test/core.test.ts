@@ -56,7 +56,7 @@ describe("claim", () => {
     expect(await c.claim.execute({ provider: "perplexity", clientId: CLIENT })).toBeNull();
   });
 
-  it("시스템 프롬프트를 합쳐 전달하고 스냅샷을 기록한다(비어 있으면 질문만)", async () => {
+  it("답변 작성 지침을 합쳐 전달하고 스냅샷을 기록한다(비어 있으면 질문만)", async () => {
     const c = await makeCore();
     const s = await c.submit.submit("Q");
     const noPrompt = await c.claim.execute({ provider: "perplexity", clientId: CLIENT });
@@ -65,7 +65,7 @@ describe("claim", () => {
     await c.prompts.put("general", "SYS");
     const s2 = await c.submit.submit("Q2");
     const job = await c.claim.execute({ provider: "perplexity", clientId: CLIENT });
-    expect(job?.prompt).toBe("SYS\n\n---\n\nQ2");
+    expect(job?.prompt).toBe("Q2\n\n---\n\nSYS");
     expect((await c.repo.getResult(s2.results[0]!.id))?.systemPromptSnapshot).toBe("SYS");
     expect((await c.repo.getResult(s.results[0]!.id))?.systemPromptSnapshot).toBe("");
   });
@@ -95,7 +95,7 @@ describe("완료/진행/실패 처리", () => {
     expect(r.answerFilePath).toMatch(new RegExp(`^answers/\\d{6}_${s.query.id.replace(/^q_/, "")}_perplexity\\.md$`));
     const text = readFileSync(join(c.dir, r.answerFilePath!), "utf8");
     expect(text).toContain("## Question\nhello");
-    expect(text).toContain("## System Prompt\nSYS");
+    expect(text).toContain("## 답변 작성 지침\nSYS");
     expect(text).toContain("- http://src");
     expect(text).toMatch(/answered_at: .*\+09:00/);
     // 중복 제출은 무시

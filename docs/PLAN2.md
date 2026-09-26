@@ -19,13 +19,13 @@ PLAN.md(Playwright 워커 방식)를 대체하는 재설계안이다. **질문�
 - 서버가 확장에 밀어 넣지(push) 않는다. **확장이 가져간다(pull).** PLAN의 "원자적 클레임"이 그대로 쓰이므로 큐 정합성 규칙이 유지된다.
 - 처리는 **브라우저가 켜져 있고 확장이 ON일 때만** 진행된다. "서버 24시간 무인 처리"는 목표에서 제외한다. 큐는 24시간 동작한다.
 - MVP 범위는 **Perplexity 콘텐츠 스크립트 1개**다. Claude/Gemini/ChatGPT는 사이트별 콘텐츠 스크립트 모듈을 추가하는 방식으로 확장한다.
-- 그 외 PLAN §1의 원칙(기본 Perplexity 단독, 다중 provider 동시 질의, 새 대화로 1회 질의, 시스템 프롬프트 공통 적용, 벌크 등록, 답변 파일 저장, MVP 무인증)은 그대로다.
+- 그 외 PLAN §1의 원칙(기본 Perplexity 단독, 다중 provider 동시 질의, 새 대화로 1회 질의, 답변 작성 지침 공통 적용, 벌크 등록, 답변 파일 저장, MVP 무인증)은 그대로다.
 
 ## 2. PLAN.md와의 관계
 
 | 항목 | 처리 |
 |---|---|
-| §4 REST API (등록/벌크/provider 추가/ask/조회/SSE/retry/시스템 프롬프트) | **유지**. 단 `GET /providers` 응답 필드 변경(§5.3) |
+| §4 REST API (등록/벌크/provider 추가/ask/조회/SSE/retry/답변 작성 지침) | **유지**. 단 `GET /providers` 응답 필드 변경(§5.3) |
 | §5 웹 UI | **본 문서 §13으로 이전**(디자인 가이드라인 포함, 확장 연결 상태 반영). 이후 UI 기준은 §13 |
 | §7 MCP | **유지** |
 | §3 데이터 모델 | **변경**: 컬럼 추가(§3) |
@@ -45,7 +45,7 @@ claimed_by TEXT               -- 작업을 가져간 확장 클라이언트 ID (
 ```
 
 - 나머지(`status`, `priority`, `retry_count`, `next_attempt_at`, `progress_message`, `system_prompt_snapshot` 등)와 규칙(UTC 저장, KST 표시, ID 규칙, UNIQUE(query_id, provider), WAL)은 PLAN §3, §3.0과 동일하다.
-- `system_prompt_snapshot`은 **작업을 claim하는 시점**의 시스템 프롬프트로 기록한다(PLAN의 "처리 시점"과 같은 의미).
+- `system_prompt_snapshot`은 **작업을 claim하는 시점**의 답변 작성 지침로 기록한다(PLAN의 "처리 시점"과 같은 의미).
 
 ## 4. 서버 ↔ 확장 프로토콜
 
@@ -70,7 +70,7 @@ claimed_by TEXT               -- 작업을 가져간 확장 클라이언트 ID (
 | 양방향 | `ping`/`pong` | — | 연결 유지 |
 
 - **순차 처리(확정)**: 확장은 한 번에 하나의 `job`만 처리한다. 서버는 이미 임대 중인 클라이언트/provider 조합의 추가 `claim`을 `idle`로 거절한다.
-- **프롬프트 조합**: 서버가 `{system_prompt}\n\n---\n\n{question}`으로 합쳐 `prompt`로 전달한다(시스템 프롬프트가 비면 질문만). 확장은 이를 그대로 입력한다.
+- **프롬프트 조합**: 서버가 `{question}\n\n---\n\n{답변 작성 지침}`(질문 먼저, 지침은 뒤)으로 합쳐 `prompt`로 전달한다(지침이 비면 질문만). 확장은 이를 그대로 입력한다.
 - claim은 PLAN §6.1의 원자적 클레임과 우선순위 규칙(`priority DESC, created_at ASC`, `next_attempt_at` 경과)을 그대로 쓰되 **요청한 provider로 필터링**한다. 여러 클라이언트가 접속해도 한 결과는 한 클라이언트만 가져간다.
 
 ### 4.3 오류 코드와 재시도
@@ -99,7 +99,7 @@ claimed_by TEXT               -- 작업을 가져간 확장 클라이언트 ID (
 ### 5.1 유스케이스 (PLAN §2.1 대비)
 | 유스케이스 | 역할 |
 |---|---|
-| `ClaimNextResult` | provider 필터 원자적 claim, 시스템 프롬프트 스냅샷 기록, `prompt` 조합, 임대 설정 |
+| `ClaimNextResult` | provider 필터 원자적 claim, 답변 작성 지침 스냅샷 기록, `prompt` 조합, 임대 설정 |
 | `RecordProgress` | `progress_message` 갱신, 임대 연장 |
 | `CompleteResult` | 답변 파일 저장(§6.7) 후 `done` 확정 |
 | `FailResult` | 오류 코드별 처리(§4.3) |
@@ -345,7 +345,7 @@ query/
 #### 상단 상태
 - 확장 연결 상태 뱃지(연결됨/끊김)와 provider별 online 여부(`GET /extension/status`, §5.3). 뱃지 외의 설명 문구는 넣지 않는다.
 
-#### 시스템 프롬프트 영역
+#### 답변 작성 지침 영역
 - 현재 `user/config/system_prompt.md` 내용을 표시하는 textarea + "저장" 버튼
 - 저장 시 `PUT /config/system-prompt` 호출. 이후 claim되는 질의부터 새 프롬프트 적용
 - 접힘/펼침(collapsible) 가능하게 하여 평소엔 목록이 우선 보이게 구성

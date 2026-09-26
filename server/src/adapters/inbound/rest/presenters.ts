@@ -13,7 +13,7 @@ function preview(results: QueryResult[]): string | null {
   const flat = done.answer
     .replace(/\[\d+\]/g, "") // 인용 번호 [1]
     .replace(/(^|\n)\s*\d+\.\s/g, " ") // 번호 목록 표시
-    .replace(/[#*`>_\[\]-]+/g, " ")
+    .replace(/[#*`>_\[\]|-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   return flat.length > PREVIEW_CHARS ? `${flat.slice(0, PREVIEW_CHARS)}…` : flat;

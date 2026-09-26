@@ -4,6 +4,7 @@ import { FilePromptStore } from "./adapters/outbound/files/filePromptStore";
 import { InMemoryPresence } from "./adapters/outbound/presence/inMemoryPresence";
 import { SqliteQueryRepository } from "./adapters/outbound/sqlite/sqliteQueryRepository";
 import { AddProviderToQuery } from "./application/addProviderToQuery";
+import { DeleteResults } from "./application/deleteResults";
 import { GetAnswerFile, GetStats } from "./application/answerFile";
 import { ListCategories, ManagePrompts } from "./application/prompts";
 import { AskQuery } from "./application/askQuery";
@@ -42,6 +43,7 @@ export interface Container {
   categories: ListCategories;
   stats: GetStats;
   answerFile: GetAnswerFile;
+  deleteResults: DeleteResults;
   sweepLeases: SweepLeases;
   cleanup: CleanupExpiredResults;
 }
@@ -90,6 +92,7 @@ export function buildContainer(settings: Settings, repo: QueryRepositoryPort = n
     categories: new ListCategories(promptStore, repo),
     stats: new GetStats(repo),
     answerFile: new GetAnswerFile(repo, storage),
+    deleteResults: new DeleteResults(repo, storage),
     sweepLeases: new SweepLeases(repo, fail),
     cleanup: new CleanupExpiredResults(repo, storage, settings.retentionDays),
   };

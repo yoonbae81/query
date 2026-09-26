@@ -1,5 +1,4 @@
 <script lang="ts">
-  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import Check from "@lucide/svelte/icons/check";
   import Copy from "@lucide/svelte/icons/copy";
   import Download from "@lucide/svelte/icons/download";
@@ -14,6 +13,7 @@
   import { app } from "../lib/stores.svelte";
   import { toast } from "../lib/toast.svelte";
   import type { ProviderInfo, QueryDetail, ResultDetail, ResultEvent } from "../lib/types";
+  import DeleteButton from "./DeleteButton.svelte";
   import MarkdownView from "./MarkdownView.svelte";
   import SourcesList from "./SourcesList.svelte";
   import StatusBadge from "./StatusBadge.svelte";
@@ -121,6 +121,42 @@
     }
   }
 
+  const processing = $derived(Object.values(results).some((r) => r.status === "processing"));
+
+  /** 질문 전체(모든 provider 결과) 삭제 */
+  async function deleteAll() {
+    if (!id) return;
+    try {
+      await api.deleteQuery(id);
+      toast.show("질의를 삭제했습니다");
+      app.reloadList();
+      void app.refresh();
+      router.go({ name: "home" });
+    } catch (e) {
+      toast.show((e as Error).message, true);
+    }
+  }
+
+  /** 현재 provider의 결과 하나 삭제. 마지막 결과였다면 질문도 함께 사라지므로 목록으로 돌아간다. */
+  async function deleteOne(r: ResultDetail) {
+    if (!id) return;
+    try {
+      const res = await api.deleteResult(id, r.result_id);
+      app.reloadList();
+      void app.refresh();
+      if (res.query_deleted) {
+        toast.show("질의를 삭제했습니다");
+        router.go({ name: "home" });
+        return;
+      }
+      delete results[r.provider];
+      selected = Object.keys(results)[0] ?? null;
+      toast.show(`${providers.find((p) => p.id === r.provider)?.name ?? r.provider} 결과를 삭제했습니다`);
+    } catch (e) {
+      toast.show((e as Error).message, true);
+    }
+  }
+
   async function copy(text: string | null) {
     try {
       await navigator.clipboard.writeText(text ?? "");
@@ -138,12 +174,20 @@
   {:else}
     <div class="panel-header">
       <div class="header-left">
-        <button class="icon-btn-ghost back" onclick={() => router.go({ name: "home" })} aria-label="목록"><ArrowLeft size={16} /></button>
-        <span class="panel-title">질의 상세</span>
+        <span class="panel-title">답변</span>
         <span class="mono id">{id}</span>
         {#if query}<span class="badge purple">{query.category}</span>{/if}
       </div>
-      <span class="mono time">{fmtTime(query?.created_at)}</span>
+      <div class="header-right">
+        <span class="mono time">{fmtTime(query?.created_at)}</span>
+        <DeleteButton
+          label="질의 삭제"
+          text="질의 삭제"
+          disabled={processing}
+          disabledReason="처리 중인 provider가 있어 삭제할 수 없습니다"
+          ondelete={deleteAll}
+        />
+      </div>
     </div>
 
     <div class="scroll">
@@ -170,7 +214,7 @@
       {#if current}
         <div class="answer">
           <div class="answer-head">
-            <span class="title"><Sparkles size={15} class="sparkles" />답변</span>
+            <span class="title"><Sparkles size={15} class="sparkles" />{providers.find((p) => p.id === selected)?.name ?? selected}</span>
             {#if current.status === "done"}<span class="mono count">{current.answer?.length ?? 0}자</span>{/if}
             <span class="grow"></span>
             {#if current.status === "done"}
@@ -185,6 +229,12 @@
                 aria-label="마크다운 파일 다운로드"
               ><Download size={15} /></a>
             {/if}
+            <DeleteButton
+              label="{providers.find((p) => p.id === selected)?.name ?? selected} 결과 삭제"
+              disabled={current.status === "processing"}
+              disabledReason="처리 중에는 삭제할 수 없습니다"
+              ondelete={() => deleteOne(current)}
+            />
           </div>
 
           <div class="answer-body">
@@ -220,7 +270,7 @@
   .header-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
   .panel-title { font-size: 14px; font-weight: 600; white-space: nowrap; }
   .id, .time { font-size: 12px; color: var(--text-muted); }
-  .back { display: none; margin-left: -8px; }
+  .header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
   .scroll { flex: 1; overflow-y: auto; min-height: 0; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
   .question { white-space: pre-wrap; word-break: break-word; font-size: 15px; font-weight: 600; line-height: 1.6; }
   .tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -246,5 +296,4 @@
   .state :global(.loader) { color: var(--accent); }
   .err { color: var(--danger-fg); white-space: pre-wrap; text-align: center; }
   .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-muted); }
-  @media (max-width: 900px) { .back { display: inline-flex; } }
 </style>

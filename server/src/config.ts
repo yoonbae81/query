@@ -15,7 +15,7 @@ export interface Settings {
   cleanupIntervalHours: number;
   retentionDays: number;
   dbPath: string;
-  /** 카테고리별 시스템 프롬프트 디렉터리 (<category>.md, 기본 general.md) */
+  /** 카테고리별 답변 작성 지침 디렉터리 (<category>.md, 기본 general.md) */
   promptsDir: string;
   answersDir: string;
   webDistDir: string;
@@ -56,7 +56,7 @@ function int(value: string | undefined, fallback: number): number {
 
 export function loadSettings(env: Env = process.env, root: string = REPO_ROOT): Settings {
   const path = (value: string | undefined, fallback: string) => resolve(root, value || fallback);
-  const supportedProviders = ["perplexity"]; // MVP: 콘텐츠 스크립트가 있는 provider (PLAN2 §1.2)
+  const supportedProviders = ["perplexity", "claude", "chatgpt", "gemini"]; // 확장에 콘텐츠 스크립트가 있는 provider (PLAN3 §6)
   return {
     host: env.QUERY_HOST || "127.0.0.1",
     port: int(env.QUERY_PORT, 8000),

@@ -16,15 +16,15 @@ describe("REST API", () => {
     const body = (await srv.app.inject("/api/v1/providers")).json();
     expect(body.providers).toEqual([
       { id: "perplexity", name: "Perplexity", available: true, online: false },
-      { id: "claude", name: "Claude", available: false, online: false },
-      { id: "gemini", name: "Gemini", available: false, online: false },
-      { id: "chatgpt", name: "ChatGPT", available: false, online: false },
+      { id: "claude", name: "Claude", available: true, online: false },
+      { id: "gemini", name: "Gemini", available: true, online: false },
+      { id: "chatgpt", name: "ChatGPT", available: true, online: false },
     ]);
 
     const bad = await srv.app.inject({ method: "POST", url: "/api/v1/queries", ...json({ query: "  " }) });
     expect(bad.statusCode).toBe(400);
     expect(bad.json().error.code).toBe("INVALID_REQUEST");
-    const unknownProvider = await srv.app.inject({ method: "POST", url: "/api/v1/queries", ...json({ query: "q", providers: ["claude"] }) });
+    const unknownProvider = await srv.app.inject({ method: "POST", url: "/api/v1/queries", ...json({ query: "q", providers: ["grok"] }) });
     expect(unknownProvider.statusCode).toBe(400);
     const schema = await srv.app.inject({ method: "POST", url: "/api/v1/queries", ...json({}) });
     expect(schema.statusCode).toBe(400);
@@ -70,13 +70,13 @@ describe("REST API", () => {
     const dup = await srv.app.inject({ method: "POST", url: `/api/v1/queries/${qid}/providers`, ...json({ providers: ["perplexity"] }) });
     expect(dup.statusCode).toBe(200);
     expect(dup.json().results).toEqual([]);
-    const bad = await srv.app.inject({ method: "POST", url: `/api/v1/queries/${qid}/providers`, ...json({ providers: ["claude"] }) });
+    const bad = await srv.app.inject({ method: "POST", url: `/api/v1/queries/${qid}/providers`, ...json({ providers: ["grok"] }) });
     expect(bad.statusCode).toBe(400);
     const missing = await srv.app.inject({ method: "POST", url: "/api/v1/queries/q_none/providers", ...json({ providers: ["perplexity"] }) });
     expect(missing.statusCode).toBe(404);
   });
 
-  it("시스템 프롬프트 조회/수정", async () => {
+  it("답변 작성 지침 조회/수정", async () => {
     srv = await makeServer();
     expect((await srv.app.inject("/api/v1/config/system-prompt")).json().content).toBe("");
     const put = await srv.app.inject({ method: "PUT", url: "/api/v1/config/system-prompt", ...json({ content: "SYS" }) });

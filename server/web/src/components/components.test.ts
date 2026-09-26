@@ -140,22 +140,22 @@ describe("PromptsModal", () => {
     };
   }
 
-  it("general 프롬프트를 불러오고 카테고리 목록을 보여준다", async () => {
+  it("general 답변 작성 지침를 불러오고 카테고리 목록을 보여준다", async () => {
     mockPrompts();
     render(PromptsModal, { onclose: () => {} });
     expect(await screen.findByDisplayValue("GENERAL")).toBeInTheDocument();
     for (const name of ["general", "legal", "tech"]) expect(screen.getByRole("button", { name: new RegExp(`^${name}`) })).toBeInTheDocument();
-    expect(screen.getByText("general 적용")).toBeInTheDocument(); // tech는 프롬프트가 없어 general이 적용된다
+    expect(screen.getByText("general 적용")).toBeInTheDocument(); // tech는 답변 작성 지침가 없어 general이 적용된다
   });
 
-  it("새 카테고리를 만들어 프롬프트를 저장한다", async () => {
+  it("새 카테고리를 만들어 답변 작성 지침를 저장한다", async () => {
     const { save } = mockPrompts();
     render(PromptsModal, { onclose: () => {} });
     await screen.findByDisplayValue("GENERAL");
 
     await fireEvent.input(screen.getByLabelText("새 카테고리"), { target: { value: "Nuclear-Safety" } });
     await fireEvent.click(screen.getByRole("button", { name: "카테고리 추가" }));
-    const editor = await screen.findByLabelText("nuclear-safety 시스템 프롬프트");
+    const editor = await screen.findByLabelText("nuclear-safety 답변 작성 지침");
     await fireEvent.input(editor, { target: { value: "원전 안전 관점" } });
     await fireEvent.click(screen.getByRole("button", { name: /저장/ }));
     await waitFor(() => expect(save).toHaveBeenCalledWith("nuclear-safety", "원전 안전 관점"));
@@ -230,6 +230,38 @@ describe("QueryListPanel", () => {
     await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ search: "변전소" })), { timeout: 1500 });
   });
 
+  it("좌측 패널 제목은 '질의'이다", async () => {
+    vi.spyOn(api, "listQueries").mockResolvedValue({ items: [], next_cursor: null });
+    render(QueryListPanel);
+    expect(screen.getByText("질의", { selector: ".panel-title" })).toBeInTheDocument();
+    expect(screen.queryByText("질의 내역")).toBeNull();
+  });
+
+  it("각 질의의 삭제 버튼은 두 번 눌러야 삭제되고, 보고 있던 질의를 지우면 목록으로 돌아간다", async () => {
+    const list = vi.spyOn(api, "listQueries").mockResolvedValue({ items: [item({ query_id: "q_1" }), item({ query_id: "q_2", query: "두 번째" })], next_cursor: null });
+    const del = vi.spyOn(api, "deleteQuery").mockResolvedValue(null);
+    router.route = { name: "detail", id: "q_2" };
+    render(QueryListPanel);
+    await screen.findByText("두 번째");
+
+    const buttons = screen.getAllByRole("button", { name: "질의 삭제" });
+    expect(buttons).toHaveLength(2);
+    await fireEvent.click(buttons[1]!);
+    expect(del).not.toHaveBeenCalled();
+    list.mockResolvedValue({ items: [item({ query_id: "q_1" })], next_cursor: null });
+    await fireEvent.click(screen.getByRole("button", { name: "질의 삭제 확인" }));
+    await waitFor(() => expect(del).toHaveBeenCalledWith("q_2"));
+    await waitFor(() => expect(screen.queryByText("두 번째")).toBeNull());
+    expect(router.route).toEqual({ name: "home" }); // 보고 있던 질의였으므로 목록으로
+  });
+
+  it("처리 중인 provider가 있는 질의는 삭제 버튼이 비활성이다", async () => {
+    vi.spyOn(api, "listQueries").mockResolvedValue({ items: [item({ results_summary: [{ provider: "perplexity", status: "processing" }] })], next_cursor: null });
+    render(QueryListPanel);
+    await screen.findByText("원자력 인허가 절차");
+    expect(screen.getByRole("button", { name: "질의 삭제" })).toBeDisabled();
+  });
+
   it("더 보기로 다음 페이지를 이어 붙인다", async () => {
     const list = vi
       .spyOn(api, "listQueries")
@@ -245,16 +277,13 @@ describe("QueryListPanel", () => {
 });
 
 describe("Header", () => {
-  it("집계와 확장 상태를 보여주고 카테고리를 전환한다", async () => {
+  it("집계와 확장 상태를 보여주고 헤더에는 카테고리 내비가 없다", () => {
     render(Header, { onbulk: () => {}, onprompts: () => {} });
     expect(screen.getByText("Queue: 2")).toBeInTheDocument();
     expect(screen.getByText("답변: 2")).toBeInTheDocument();
     expect(screen.getByText("확장 연결됨")).toBeInTheDocument();
-
-    await fireEvent.click(screen.getByRole("button", { name: "legal" }));
-    expect(app.categoryFilter).toBe("legal");
-    await fireEvent.click(screen.getByRole("button", { name: "전체" }));
-    expect(app.categoryFilter).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "카테고리" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "legal" })).toBeNull();
   });
 
   it("확장이 없으면 끊김으로 표시한다", () => {

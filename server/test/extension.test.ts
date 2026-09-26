@@ -56,7 +56,7 @@ describe("확장 WebSocket 프로토콜", () => {
     expect(job).toMatchObject({
       result_id: s.results[0]!.id,
       provider: "perplexity",
-      prompt: "SYS\n\n---\n\nhello",
+      prompt: "hello\n\n---\n\nSYS",
       lease_seconds: 120,
     });
 
@@ -75,7 +75,7 @@ describe("확장 WebSocket 프로토콜", () => {
 
     // 완료 후에는 다음 작업을 가져갈 수 있고, 그 작업이 끝나기 전에는 다시 idle이다
     ext.send({ type: "claim", provider: "perplexity" });
-    expect((await ext.next("job")).prompt).toBe("SYS\n\n---\n\nsecond");
+    expect((await ext.next("job")).prompt).toBe("second\n\n---\n\nSYS");
     ext.send({ type: "claim", provider: "perplexity" });
     await ext.next("idle");
   });
@@ -157,6 +157,39 @@ describe("확장 WebSocket 프로토콜", () => {
     b.send({ type: "result", result_id: job.result_id, answer: "hijack", citations: [] });
     await b.next("protocol_error");
     expect((await srv.container.repo.getResult(s.results[0]!.id))?.status).toBe("processing");
+  });
+
+  it("여러 클라이언트가 있으면 한 곳만 claim하고 이후 작업은 round-robin으로 분배된다", async () => {
+    const a = await connect();
+    const ready = [{ id: "perplexity", state: "ready" as const }];
+    a.hello(ready, "ext-a");
+    const b = await FakeExtension.connect(srv.wsUrl + "/ext/ws");
+    const c = await FakeExtension.connect(srv.wsUrl + "/ext/ws");
+    exts.push(b, c);
+    b.hello(ready, "ext-b");
+    c.hello(ready, "ext-c");
+    await until(() => srv.container.presence.snapshot(["perplexity"]).clients === 3);
+
+    await srv.container.submit.submit("q1");
+    await srv.container.submit.submit("q2");
+    await srv.container.submit.submit("q3");
+
+    // 차례가 아닌 b가 먼저 claim해도 idle이고, 차례인 a가 wake를 받아 가져간다
+    b.send({ type: "claim", provider: "perplexity" });
+    await b.next("idle");
+    await a.next("wake");
+    a.send({ type: "claim", provider: "perplexity" });
+    await a.next("job");
+
+    // 다음 차례는 b, 그 다음은 c
+    a.send({ type: "claim", provider: "perplexity" }); // a는 처리 중
+    await a.next("idle");
+    c.send({ type: "claim", provider: "perplexity" });
+    await c.next("idle");
+    b.send({ type: "claim", provider: "perplexity" });
+    await b.next("job");
+    c.send({ type: "claim", provider: "perplexity" });
+    await c.next("job");
   });
 
   it("연결이 끊기면 임대가 만료 처리되어 sweep이 재시도로 돌린다", async () => {

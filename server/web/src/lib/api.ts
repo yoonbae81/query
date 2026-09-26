@@ -69,6 +69,11 @@ export const api = {
     }),
   retry: (id: string, resultId: string) =>
     request(`/queries/${enc(id)}/results/${enc(resultId)}/retry`, { method: "POST" }),
+  /** 질문 전체(모든 provider 결과)를 삭제한다. 처리 중인 결과가 있으면 409 */
+  deleteQuery: (id: string) => request<null>(`/queries/${enc(id)}`, { method: "DELETE" }),
+  /** provider 결과 하나를 삭제한다. 마지막 결과였다면 query_deleted=true */
+  deleteResult: (id: string, resultId: string) =>
+    request<{ query_deleted: boolean }>(`/queries/${enc(id)}/results/${enc(resultId)}`, { method: "DELETE" }),
   /** 저장된 질문/답변 마크다운 파일 내려받기 링크 */
   downloadUrl: (id: string, resultId: string) => apiUrl(`/queries/${enc(id)}/results/${enc(resultId)}/download`),
 };

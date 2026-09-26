@@ -50,10 +50,6 @@
     setStoredThemeMode(themeMode);
   }
 
-  function selectCategory(category: string | null) {
-    app.categoryFilter = category;
-    if (router.route.name !== "home") router.go({ name: "home" });
-  }
 </script>
 
 <header class="app-header">
@@ -70,15 +66,6 @@
       <MessageSquareText size={20} class="logo-mark" />
       QUERY
     </a>
-    <nav class="category-nav" aria-label="카테고리">
-      <button class="nav-link" class:active={app.categoryFilter === null} onclick={() => selectCategory(null)}>전체</button>
-      {#each app.categories as c (c.category)}
-        <span class="sep" aria-hidden="true">|</span>
-        <button class="nav-link" class:active={app.categoryFilter === c.category} onclick={() => selectCategory(c.category)}>
-          {c.category}
-        </button>
-      {/each}
-    </nav>
   </div>
 
   <div class="status-bar">
@@ -95,7 +82,7 @@
       <button class="icon-btn" class:active={activeModal === "bulk"} onclick={onbulk} title="벌크 입력" aria-label="벌크 입력">
         <ListPlus size={16} />
       </button>
-      <button class="icon-btn" class:active={activeModal === "prompts"} onclick={onprompts} title="프롬프트 관리" aria-label="프롬프트 관리">
+      <button class="icon-btn" class:active={activeModal === "prompts"} onclick={onprompts} title="카테고리별 답변 작성 지침" aria-label="카테고리별 답변 작성 지침">
         <ScrollText size={16} />
       </button>
       <button class="icon-btn" onclick={cycleTheme} title="테마: {THEME_LABEL[themeMode]}" aria-label="테마 변경 (현재: {THEME_LABEL[themeMode]})">
@@ -115,18 +102,6 @@
   .logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; letter-spacing: 0.05em; white-space: nowrap; }
   .logo:hover { color: var(--accent); }
   .logo :global(.logo-mark) { color: var(--accent); }
-  .category-nav { display: flex; align-items: center; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-  .category-nav::-webkit-scrollbar { display: none; }
-  @media (max-width: 640px) {
-    .category-nav { mask-image: linear-gradient(to right, black calc(100% - 20px), transparent); -webkit-mask-image: linear-gradient(to right, black calc(100% - 20px), transparent); padding-right: 16px; }
-  }
-  .nav-link {
-    padding: 2px 6px; font-size: 13px; font-weight: 500; color: var(--text-secondary); border-radius: 4px; white-space: nowrap;
-    max-width: 120px; overflow: hidden; text-overflow: ellipsis; background: none;
-  }
-  .nav-link:hover { color: var(--accent); }
-  .nav-link.active { color: var(--text-primary); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--accent); }
-  .sep { color: var(--border); user-select: none; }
   .status-bar { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .stat-pill {
     display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono);
@@ -142,6 +117,5 @@
     .app-header { padding-left: max(12px, var(--sal)); padding-right: max(12px, var(--sar)); }
     .status-bar { gap: 6px; }
     .status-bar .badge, .divider { display: none; }
-    .category-nav .nav-link { max-width: 84px; font-size: 12px; }
   }
 </style>

@@ -405,8 +405,20 @@ export class SqliteQueryRepository implements QueryRepositoryPort {
     if (resultIds.length === 0) return;
     const marks = resultIds.map(() => "?").join(",");
     this.tx(() => {
+      const affected = this.all(`SELECT DISTINCT query_id FROM query_results WHERE id IN (${marks})`, ...resultIds).map(
+        (r) => r.query_id as string,
+      );
       this.run(`DELETE FROM query_results WHERE id IN (${marks})`, ...resultIds);
       this.run("DELETE FROM queries WHERE NOT EXISTS (SELECT 1 FROM query_results r WHERE r.query_id=queries.id)");
+      // 남은 결과를 기준으로 질문의 provider 목록을 다시 만든다(삭제한 provider는 다시 질의할 수 있어야 한다)
+      for (const queryId of affected) {
+        this.run(
+          "UPDATE queries SET providers=(SELECT json_group_array(provider) FROM " +
+            "(SELECT provider FROM query_results WHERE query_id=? ORDER BY created_at, rowid)) WHERE id=?",
+          queryId,
+          queryId,
+        );
+      }
     });
   }
 }

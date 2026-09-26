@@ -9,6 +9,7 @@
   import { app } from "../lib/stores.svelte";
   import { toast } from "../lib/toast.svelte";
   import type { QuerySummary } from "../lib/types";
+  import DeleteButton from "./DeleteButton.svelte";
   import StatusBadge from "./StatusBadge.svelte";
 
   const PAGE = 20;
@@ -24,6 +25,22 @@
   let token = 0; // 늦게 도착한 이전 요청의 응답이 최신 목록을 덮어쓰지 않게 한다
 
   const selectedId = $derived(router.route.name === "detail" ? router.route.id : null);
+
+  const isBusy = (it: QuerySummary) => it.results_summary.some((r) => r.status === "processing");
+
+  /** 질의(모든 provider 결과 포함) 삭제. 지금 보고 있던 질의였다면 목록 화면으로 돌아간다. */
+  async function remove(it: QuerySummary) {
+    try {
+      await api.deleteQuery(it.query_id);
+      items = items.filter((x) => x.query_id !== it.query_id);
+      toast.show("질의를 삭제했습니다");
+      if (selectedId === it.query_id) router.go({ name: "home" });
+      void app.refresh();
+      void load(false);
+    } catch (e) {
+      toast.show((e as Error).message, true);
+    }
+  }
 
   // 검색어는 입력이 멈춘 뒤에 적용한다
   $effect(() => {
@@ -81,7 +98,7 @@
 <section class="panel">
   <div class="panel-header">
     <div class="header-left">
-      <span class="panel-title">질의 내역</span>
+      <span class="panel-title">질의</span>
     </div>
     <div class="filters">
       <div class="search-wrap">
@@ -98,9 +115,9 @@
 
   <div class="scroll">
     {#each items as it (it.query_id)}
+      <div class="row-wrap" class:active={it.query_id === selectedId}>
       <a
         class="item"
-        class:active={it.query_id === selectedId}
         href={router.href({ name: "detail", id: it.query_id })}
         onclick={(e) => {
           e.preventDefault();
@@ -122,6 +139,15 @@
           {#if it.batch_id}<span class="mono">{it.batch_id}</span>{/if}
         </div>
       </a>
+      <div class="row-actions">
+        <DeleteButton
+          label="질의 삭제"
+          disabled={isBusy(it)}
+          disabledReason="처리 중인 provider가 있어 삭제할 수 없습니다"
+          ondelete={() => remove(it)}
+        />
+      </div>
+      </div>
     {/each}
 
     {#if loaded && items.length === 0}
@@ -147,14 +173,18 @@
   .search { width: 150px; height: 32px; padding: 4px 8px 4px 28px; font-size: 13px; }
   select { height: 32px; padding: 4px 8px; font-size: 13px; font-family: var(--font-mono); }
   .scroll { flex: 1; overflow-y: auto; min-height: 0; }
-  .item { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; }
-  .item:hover { background: var(--bg-surface-hover); }
-  .item.active { background: var(--bg-surface-hover); box-shadow: inset 3px 0 0 var(--accent); }
+  .row-wrap { position: relative; border-bottom: 1px solid var(--border); }
+  .row-wrap:hover, .row-wrap:focus-within { background: var(--bg-surface-hover); }
+  .row-wrap.active { background: var(--bg-surface-hover); box-shadow: inset 3px 0 0 var(--accent); }
+  .item { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; cursor: pointer; }
+  .row-actions { position: absolute; right: 12px; bottom: 8px; opacity: 0; transition: opacity 0.15s ease; }
+  .row-wrap:hover .row-actions, .row-wrap:focus-within .row-actions { opacity: 1; }
+  @media (hover: none) { .row-actions { opacity: 1; } }
   .row1 { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
   .q { flex: 1; min-width: 0; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
   .statuses { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
   .preview { font-size: 13px; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
-  .meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
+  .meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; min-height: 32px; padding-right: 96px; }
   .empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 16px; color: var(--text-muted); }
   .more { display: flex; justify-content: center; padding: 12px; }
   @media (max-width: 640px) { .search { width: 110px; } }

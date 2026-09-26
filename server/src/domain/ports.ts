@@ -103,7 +103,7 @@ export interface PromptInfo {
   size: number;
 }
 
-/** 카테고리별 시스템 프롬프트 저장소 (user/prompts/<category>.md, PLAN3 §4) */
+/** 카테고리별 답변 작성 지침 저장소 (user/prompts/<category>.md, PLAN3 §4) */
 export interface PromptStorePort {
   list(): Promise<PromptInfo[]>;
   /** 없으면 null */

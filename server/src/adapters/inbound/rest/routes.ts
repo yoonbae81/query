@@ -69,7 +69,7 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
     return p.askPayload(out);
   });
 
-  // ---- 카테고리별 시스템 프롬프트 (user/prompts/<category>.md, PLAN3 §4)
+  // ---- 카테고리별 답변 작성 지침 (user/prompts/<category>.md, PLAN3 §4)
   app.get("/categories", async () => ({
     categories: (await c.categories.execute()).map((v) => ({
       category: v.category,
@@ -96,7 +96,7 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
     return reply.code(204).send();
   });
 
-  // 하위 호환: 예전 단일 시스템 프롬프트 API는 general 프롬프트를 가리킨다
+  // 하위 호환: 예전 단일 답변 작성 지침 API는 general 답변 작성 지침를 가리킨다
   app.get("/config/system-prompt", async () => promptPayload(await c.prompts.get("general")));
   app.put("/config/system-prompt", async (req) => {
     const body = parseBody(systemPromptBody, req.body);
@@ -162,6 +162,18 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
       clearInterval(keepalive);
       res.end();
     }
+  });
+
+  // 질문 전체(모든 provider 결과)를 삭제한다. 처리 중인 결과가 있으면 409
+  app.delete<IdParams>("/queries/:id", async (req, reply) => {
+    await c.deleteResults.deleteQuery(req.params.id);
+    return reply.code(204).send();
+  });
+
+  // provider 결과 하나를 삭제한다. 마지막 결과였다면 질문도 함께 삭제된다(query_deleted=true)
+  app.delete<{ Params: { id: string; resultId: string } }>("/queries/:id/results/:resultId", async (req) => {
+    const { queryDeleted } = await c.deleteResults.deleteResult(req.params.id, req.params.resultId);
+    return { query_deleted: queryDeleted };
   });
 
   // 저장된 질문/답변 마크다운 파일 내려받기 (답변 열람/백업용)

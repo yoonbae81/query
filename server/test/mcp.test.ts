@@ -78,6 +78,18 @@ describe.each<Kind>(["sse", "http"])("MCP (%s)", (kind) => {
     expect(ask.results[0]).toMatchObject({ status: "done", answer: "MCP 답변", citations: ["http://s"] });
   });
 
+  it("query_ask의 category는 생략하면 general, 지정하면 그 카테고리로 등록된다", async () => {
+    const c = await connect(kind);
+    const plain = JSON.parse(text(await c.callTool({ name: "query_ask", arguments: { question: "no category", timeout_seconds: 1 } })));
+    const legal = JSON.parse(text(await c.callTool({ name: "query_ask", arguments: { question: "with category", category: "Legal", timeout_seconds: 1 } })));
+    const status = async (id: string) => JSON.parse(text(await c.callTool({ name: "query_status", arguments: { query_id: id } })));
+    expect((await status(plain.query_id)).category).toBe("general");
+    expect((await status(legal.query_id)).category).toBe("legal"); // 소문자로 통일
+    const bad = await c.callTool({ name: "query_ask", arguments: { question: "x", category: "../evil" } });
+    expect(bad.isError).toBe(true);
+    expect(text(bad)).toContain("INVALID_REQUEST");
+  });
+
   it("도메인 오류는 isError 결과로 돌려준다", async () => {
     const c = await connect(kind);
     const empty = await c.callTool({ name: "query_ask", arguments: { question: "   " } });

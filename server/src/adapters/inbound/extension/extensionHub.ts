@@ -34,6 +34,9 @@ export interface HubDeps {
   fail: FailResult;
   supportedProviders: readonly string[];
   leaseSeconds: number;
+  /** round-robin에서 차례인 클라이언트를 기다리는 최대 시간 (기본 30초) */
+  turnTimeoutMs?: number;
+  now?: () => number;
   log?: (message: string) => void;
 }
 
@@ -43,6 +46,7 @@ export interface HubDeps {
  */
 export class ExtensionHub implements ExtensionNotifierPort {
   private readonly connections = new Set<Connection>();
+  private readonly rr = new Map<string, { last?: string; turn?: Connection; since?: number }>();
 
   constructor(private readonly deps: HubDeps) {}
 
@@ -164,13 +168,48 @@ export class ExtensionHub implements ExtensionNotifierPort {
     this.deps.presence.connect(clientId, this.toStates(providers));
   }
 
+  private canServe(conn: Connection, provider: string): boolean {
+    return (
+      !!conn.clientId &&
+      conn.socket.readyState === OPEN &&
+      this.deps.presence.providerState(conn.clientId, provider) === "ready" &&
+      conn.active.size === 0 // 확장은 provider와 무관하게 한 번에 하나만 처리한다
+    );
+  }
+
+  /**
+   * provider별 round-robin 순번: 마지막으로 작업을 받은 클라이언트 다음의 가용 클라이언트가 차례를 갖는다.
+   * 차례인 클라이언트가 turnTimeoutMs 안에 claim하지 않으면(일시정지 등) 건너뛴다.
+   */
+  private currentTurn(provider: string): Connection | undefined {
+    const all = [...this.connections].filter((c) => c.clientId);
+    const eligible = new Set(all.filter((c) => this.canServe(c, provider)));
+    if (eligible.size === 0) return undefined;
+    const now = (this.deps.now ?? Date.now)();
+    const rr = this.rr.get(provider) ?? {};
+    const timeoutMs = this.deps.turnTimeoutMs ?? 30_000;
+    if (rr.turn && eligible.has(rr.turn) && now - (rr.since ?? 0) < timeoutMs) return rr.turn;
+    if (rr.turn) rr.last = rr.turn.clientId; // 시간 초과: 순번을 넘긴다
+    const start = all.findIndex((c) => c.clientId === rr.last) + 1; // 못 찾으면 처음부터
+    for (let i = 0; i < all.length; i++) {
+      const c = all[(start + i) % all.length]!;
+      if (eligible.has(c)) {
+        this.rr.set(provider, { last: rr.last, turn: c, since: now });
+        return c;
+      }
+    }
+    return undefined;
+  }
+
   private async onClaim(conn: Connection, clientId: string, provider: string): Promise<void> {
-    if (!this.deps.supportedProviders.includes(provider) || this.deps.presence.providerState(clientId, provider) !== "ready") {
-      this.send(conn, { type: "idle", provider });
+    if (!this.deps.supportedProviders.includes(provider) || !this.canServe(conn, provider)) {
+      this.send(conn, { type: "idle", provider }); // 미지원/미준비/순차 처리 중
       return;
     }
-    if ([...conn.active.values()].includes(provider)) {
-      this.send(conn, { type: "idle", provider }); // 순차 처리: 이미 처리 중
+    const turn = this.currentTurn(provider);
+    if (turn !== conn) {
+      this.send(conn, { type: "idle", provider });
+      if (turn) this.send(turn, { type: "wake" }); // 차례인 클라이언트가 가져가도록 깨운다
       return;
     }
     const job = await this.deps.claim.execute({ provider, clientId });
@@ -178,6 +217,7 @@ export class ExtensionHub implements ExtensionNotifierPort {
       this.send(conn, { type: "idle", provider });
       return;
     }
+    this.rr.set(provider, { last: clientId }); // 다음 작업은 이 클라이언트 다음 순번으로
     conn.active.set(job.resultId, provider);
     this.send(conn, {
       type: "job",

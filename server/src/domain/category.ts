@@ -2,7 +2,7 @@ import { InvalidRequest } from "./errors";
 
 export const DEFAULT_CATEGORY = "general";
 
-// 카테고리는 프롬프트 파일명(user/prompts/<category>.md)으로도 쓰이므로 경로 문자와 점을 허용하지 않는다.
+// 카테고리는 답변 작성 지침 파일명(user/prompts/<category>.md)으로도 쓰이므로 경로 문자와 점을 허용하지 않는다.
 const CATEGORY_RE = /^[\p{L}\p{N}][\p{L}\p{N}_-]{0,31}$/u;
 
 // Windows 예약 장치명은 파일명으로 쓸 수 없다

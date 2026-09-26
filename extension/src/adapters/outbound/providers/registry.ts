@@ -15,4 +15,22 @@ export const PROVIDERS: readonly ProviderDescriptor[] = [
     matches: ["https://www.perplexity.ai/*", "https://perplexity.ai/*"],
     newThreadUrl: "https://www.perplexity.ai/",
   },
+  {
+    id: "claude",
+    name: "Claude",
+    matches: ["https://claude.ai/*"],
+    newThreadUrl: "https://claude.ai/new",
+  },
+  {
+    id: "chatgpt",
+    name: "ChatGPT",
+    matches: ["https://chatgpt.com/*"],
+    newThreadUrl: "https://chatgpt.com/",
+  },
+  {
+    id: "gemini",
+    name: "Gemini",
+    matches: ["https://gemini.google.com/*"],
+    newThreadUrl: "https://gemini.google.com/app",
+  },
 ];
