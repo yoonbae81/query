@@ -241,11 +241,15 @@ describe("확장 WebSocket 프로토콜", () => {
     expect(res.json().results[0]).toMatchObject({ provider: "perplexity", status: "done", answer: "답: Q", citations: ["http://s"] });
   });
 
-  it("AUTH_TOKEN이 설정되면 토큰이 없는 연결은 4401로 닫힌다", async () => {
-    const denied = await connect({ AUTH_TOKEN: "secret" });
+  it("API_TOKEN이 설정되면 토큰이 없거나 틀린 연결은 4401로 닫히고, 등록된 토큰이면 어느 것이든 허용된다", async () => {
+    const denied = await connect({ API_TOKEN: "secret, other" });
     expect(await denied.waitClosed()).toBe(4401);
 
-    const allowed = await FakeExtension.connect(srv.wsUrl + "/ext/ws?token=secret");
+    const wrong = await FakeExtension.connect(srv.wsUrl + "/ext/ws?token=nope");
+    exts.push(wrong);
+    expect(await wrong.waitClosed()).toBe(4401);
+
+    const allowed = await FakeExtension.connect(srv.wsUrl + "/ext/ws?token=other");
     exts.push(allowed);
     allowed.hello();
     await until(online);

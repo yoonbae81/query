@@ -21,11 +21,18 @@ function bearer(headers: Record<string, unknown>): string {
   return typeof h === "string" ? h.replace(/^Bearer\s+/i, "") : "";
 }
 
+/** 등록된 토큰 중 하나와 일치하는지 상수 시간으로 검사한다. */
+function matchesAny(tokens: readonly string[], candidate: string): boolean {
+  let ok = false;
+  for (const t of tokens) ok = safeEqual(candidate, t) || ok; // 일치해도 끝까지 비교해 어느 토큰인지 새지 않게 한다
+  return ok;
+}
+
 /** 확장 WebSocket 토큰 검사. 브라우저 WebSocket은 헤더를 못 붙이므로 query token도 허용한다. */
-export function isAuthorized(authToken: string, headers: Record<string, unknown>, query: Record<string, unknown>): boolean {
-  if (!authToken) return true;
+export function isAuthorized(tokens: readonly string[], headers: Record<string, unknown>, query: Record<string, unknown>): boolean {
+  if (tokens.length === 0) return true;
   const q = typeof query.token === "string" ? query.token : "";
-  return safeEqual(bearer(headers), authToken) || safeEqual(q, authToken);
+  return matchesAny(tokens, bearer(headers)) || matchesAny(tokens, q);
 }
 
 /**
@@ -128,12 +135,12 @@ export function registerSecurity(app: FastifyInstance, s: Settings): void {
 
     if (!isApi) return;
 
-    if (s.apiToken) {
+    if (s.apiTokens.length > 0) {
       if (authFailures.blocked(req.ip)) {
         reply.header("Retry-After", "300");
         return reply.code(429).send(errorBody("RATE_LIMITED", "인증 시도가 너무 많습니다."));
       }
-      if (!safeEqual(bearer(req.headers), s.apiToken)) {
+      if (!matchesAny(s.apiTokens, bearer(req.headers))) {
         authFailures.hit(req.ip);
         req.log.warn({ ip: req.ip, path }, "api authentication failed");
         reply.header("WWW-Authenticate", "Bearer");

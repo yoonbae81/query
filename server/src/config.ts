@@ -23,10 +23,8 @@ export interface Settings {
   askDefaultTimeoutSeconds: number;
   askMaxTimeoutSeconds: number;
   displayTimezone: string;
-  /** 비어 있으면 무인증 (PLAN2 §4.1, 향후 토큰 도입) */
-  authToken: string;
-  /** 비어 있으면 REST(/api)·MCP 무인증. 설정 시 `Authorization: Bearer` 필수 (ASVS V8.2.1) */
-  apiToken: string;
+  /** 허용할 API 토큰(쉼표로 여러 개). 비어 있으면 REST(/api)·MCP·확장 WebSocket 모두 무인증. 설정 시 `Authorization: Bearer`(WebSocket은 `?token=`도) 필수 (ASVS V8.2.1) */
+  apiTokens: string[];
   /** 브라우저 Origin 허용 목록. 비어 있으면 요청 Host와 동일한 Origin만 허용 (ASVS V3.5.x, V4.4.2) */
   allowedOrigins: string[];
   /** 요청 본문 최대 바이트 (ASVS V2.2.x) */
@@ -77,8 +75,7 @@ export function loadSettings(env: Env = process.env, root: string = REPO_ROOT): 
     askDefaultTimeoutSeconds: int(env.ASK_DEFAULT_TIMEOUT_SECONDS, 60),
     askMaxTimeoutSeconds: int(env.ASK_MAX_TIMEOUT_SECONDS, 300),
     displayTimezone: env.DISPLAY_TIMEZONE || "Asia/Seoul",
-    authToken: env.AUTH_TOKEN ?? "",
-    apiToken: env.API_TOKEN ?? "",
+    apiTokens: list(env.API_TOKEN, []),
     allowedOrigins: list(env.ALLOWED_ORIGINS, []).map((o) => o.replace(/\/+$/, "")),
     maxBodyBytes: int(env.MAX_BODY_BYTES, 256 * 1024),
     rateLimitPerMinute: int(env.RATE_LIMIT_PER_MINUTE, 300),

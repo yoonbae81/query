@@ -49,7 +49,7 @@ export async function buildApp(c: Container, opts: { logger?: boolean } = {}): P
       socket.close(4403, "forbidden origin");
       return;
     }
-    if (!isAuthorized(c.settings.authToken, req.headers, req.query as Record<string, unknown>)) {
+    if (!isAuthorized(c.settings.apiTokens, req.headers, req.query as Record<string, unknown>)) {
       req.log.warn({ ip: req.ip }, "extension websocket authentication failed");
       socket.close(4401, "unauthorized");
       return;

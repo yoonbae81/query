@@ -52,7 +52,7 @@ claimed_by TEXT               -- 작업을 가져간 확장 클라이언트 ID (
 ### 4.1 전송 (확정: WebSocket)
 - 엔드포인트: `GET /ext/ws` (basePath 하위, 예 `/query/ext/ws`). reverse proxy는 WebSocket 업그레이드를 전달해야 한다.
 - 연결은 확장의 서비스 워커가 유지하며, 확장이 ON인 동안에만 연결한다. 30초 이내 주기로 `ping`을 보낸다(MV3 서비스 워커 수명 유지 및 끊김 감지 겸용).
-- 인증: MVP는 무인증. 다만 연결 수락 지점에 인증 훅(`get_current_user`와 동일 계열, no-op)을 둔다. **향후 확장과 웹 UI 모두 토큰을 사용**하며, 토큰은 확장 설정에 저장하고 WebSocket 연결 시 전달한다(설정 `AUTH_TOKEN`, 비어 있으면 무인증). 이 훅 외의 코드는 인증 도입 시 변경되지 않아야 한다.
+- 인증: MVP는 무인증. 다만 연결 수락 지점에 인증 훅(`get_current_user`와 동일 계열, no-op)을 둔다. **향후 확장과 웹 UI 모두 토큰을 사용**하며, 토큰은 확장 설정에 저장하고 WebSocket 연결 시 전달한다(설정 `API_TOKEN`(쉼표로 여러 개), 비어 있으면 무인증). 이 훅 외의 코드는 인증 도입 시 변경되지 않아야 한다.
 
 ### 4.2 메시지 (JSON)
 
@@ -194,7 +194,7 @@ UI가 작으므로 프레임워크·UI 빌드 도구 없이 정적 HTML/CSS와, 
 - systemd는 `query-api.service` **하나만** 사용한다(`query-worker.service` 폐기). uvicorn은 worker 1개로 실행한다.
 - reverse proxy는 `/query/ext/ws`의 WebSocket 업그레이드를 전달해야 한다(예: Nginx `Upgrade`/`Connection` 헤더).
 - 환경변수 삭제: `PERPLEXITY_LOGIN_EMAIL`, `GMAIL_*`, `PLAYWRIGHT_*`, `BROWSER_PROVIDER`, `MAX_CONCURRENT_WORKERS`, `WORKER_POLL_INTERVAL_SECONDS`.
-- 환경변수 추가: `LEASE_SECONDS`(120), `LEASE_SWEEP_INTERVAL_SECONDS`(10), `AUTH_TOKEN`(빈 값 = 무인증, 향후).
+- 환경변수 추가: `LEASE_SECONDS`(120), `LEASE_SWEEP_INTERVAL_SECONDS`(10), `API_TOKEN`(빈 값 = 무인증).
 - 유지: `BASE_PATH`, `DEFAULT_PROVIDERS`, `MAX_RETRY`, `RETRY_BACKOFF_SECONDS`, `DB_PATH`, `SYSTEM_PROMPT_PATH`, `ANSWERS_DIR`, `RETENTION_DAYS`, `CLEANUP_INTERVAL_HOURS`, `ASK_*`, `MAX_QUERY_LENGTH`, `DISPLAY_TIMEZONE`.
 
 ## 9. 리스크
@@ -419,7 +419,7 @@ query/
 1. **Perplexity 셀렉터 확정(스파이크, §7)**: 입력창(`#ask-input`)과 로그인 판별은 관찰로 확인했으나, 전송 버튼·생성 중 표시(중지 버튼)·답변 본문·출처 셀렉터는 추정값이다(`extension/src/adapters/outbound/providers/perplexity/selectors.ts`에 확인됨/추정 구분 표기). 확장을 실제 Perplexity 탭에서 돌리면 `selector_missing` 오류가 어떤 셀렉터인지 메시지로 알려 주고, 콘솔 스니펫(홈/생성 중/완료 3상태) 결과로 확정한다. 입력창 주입(`execCommand`/paste)이 실제 에디터에서 인식되는지, 화면에 안 보이는 탭에서 답변 감지가 동작하는지도 이때 확인한다.
 2. 실제 서비스 등록 검증(`m`에서 `setup-env.sh` → `install-launchd.sh`), 사설망(WireGuard) 경유 확장 접속.
 3. ~~확장 아이콘~~ — 완료(2026-09-26): `extension/scripts/make-icons.mjs`로 생성한 `static/icons/*.png`, 빌드가 manifest에 등록.
-4. 토큰 인증: 확장 WebSocket은 `AUTH_TOKEN`으로 동작하며, REST/웹 UI 토큰은 향후(§4.1).
+4. 토큰 인증: 확장 WebSocket·REST·MCP 모두 `API_TOKEN`(쉼표로 여러 개)을 쓰고, 웹 UI는 401이면 토큰을 물어 브라우저에 저장한다.
 5. Claude/ChatGPT/Gemini 사이트 모듈(확장 `providers/`에 추가, §12.4).
 
 ### 14.4 실행 방법

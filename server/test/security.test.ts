@@ -57,6 +57,16 @@ describe("ASVS 보안 강화", () => {
     expect(res.statusCode).toBe(200);
   });
 
+  it("API_TOKEN을 쉼표로 여러 개 등록하면 그중 어느 것이든 통과한다", async () => {
+    srv = await makeServer({ API_TOKEN: "first, second" });
+    for (const tok of ["first", "second"]) {
+      const res = await srv.app.inject({ method: "GET", url: "/api/v1/providers", headers: { authorization: `Bearer ${tok}` } });
+      expect(res.statusCode).toBe(200);
+    }
+    const bad = await srv.app.inject({ method: "GET", url: "/api/v1/providers", headers: { authorization: "Bearer third" } });
+    expect(bad.statusCode).toBe(401);
+  });
+
   it("인증 실패가 반복되면 429 (V6.3.1)", async () => {
     srv = await makeServer({ API_TOKEN: "s3cret" });
     for (let i = 0; i < 11; i++) await srv.app.inject({ method: "GET", url: "/api/v1/providers" });
