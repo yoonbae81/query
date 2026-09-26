@@ -1,6 +1,6 @@
 /**
  * 입력창에 텍스트를 넣는다. 사이트의 에디터(React/Lexical 등)가 값을 인식하도록 이벤트를 함께 발생시킨다.
- * 실제 사이트에서의 동작은 스파이크로 검증해야 한다 (PLAN2 §7).
+ * 실제 사이트에서의 동작은 스파이크로 검증해야 한다.
  */
 export function insertText(el: HTMLElement, text: string): void {
   el.focus();

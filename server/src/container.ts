@@ -20,7 +20,7 @@ import { SweepLeases } from "./application/sweepLeases";
 import type { Settings } from "./config";
 import type { ExtensionNotifierPort, QueryRepositoryPort } from "./domain/ports";
 
-/** 지원 provider의 표시 이름 (PLAN §4.2). 실제 지원 여부는 settings.supportedProviders */
+/** 지원 provider의 표시 이름. 실제 지원 여부는 settings.supportedProviders */
 export const PROVIDER_NAMES: Record<string, string> = {
   perplexity: "Perplexity",
   claude: "Claude",

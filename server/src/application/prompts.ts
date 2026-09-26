@@ -3,7 +3,7 @@ import { Conflict, NotFound } from "../domain/errors";
 import type { PromptStorePort, QueryRepositoryPort } from "../domain/ports";
 
 /**
- * 질문 카테고리에 적용할 답변작성 지침를 고른다 (PLAN3 §4.2).
+ * 질문 카테고리에 적용할 답변작성 지침를 고른다.
  * 카테고리 파일이 있으면 그것을, 없으면 general을, general도 없으면 빈 문자열을 쓴다.
  */
 export async function resolvePrompt(

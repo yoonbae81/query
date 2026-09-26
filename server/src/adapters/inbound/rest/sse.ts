@@ -25,7 +25,7 @@ const sleep = (ms: number, signal?: AbortSignal) =>
   });
 
 /**
- * DB 폴링 → 변경분만 이벤트로 내보내는 브릿지 (PLAN §4.11).
+ * DB 폴링 → 변경분만 이벤트로 내보내는 브릿지.
  * 첫 폴링은 현재 스냅샷을 result_update로, 이후 새로 생긴 결과는 result_added로 보낸다.
  * 자동 종료하지 않으며 idleTimeoutMs가 지나거나 signal이 abort되면 끝난다.
  */

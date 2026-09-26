@@ -11,7 +11,7 @@ const MAX_SSE_SESSIONS = 50;
 const jsonRpcError = (message: string) => ({ jsonrpc: "2.0", error: { code: -32000, message }, id: null });
 
 /**
- * MCP 전송 (PLAN §7.2).
+ * MCP 전송.
  * - SSE: GET /mcp/sse (서버→클라이언트), POST /mcp/messages (클라이언트→서버)
  * - Streamable HTTP(현재 표준): POST /mcp (stateless)
  * basePath는 reverse proxy가 제거해서 전달하므로 라우트는 /mcp부터다. 단 SSE가 클라이언트에 알려주는

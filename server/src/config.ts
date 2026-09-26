@@ -54,7 +54,7 @@ function int(value: string | undefined, fallback: number): number {
 
 export function loadSettings(env: Env = process.env, root: string = REPO_ROOT): Settings {
   const path = (value: string | undefined, fallback: string) => resolve(root, value || fallback);
-  const supportedProviders = ["perplexity", "claude", "chatgpt", "gemini"]; // 확장에 콘텐츠 스크립트가 있는 provider (PLAN3 §6)
+  const supportedProviders = ["perplexity", "claude", "chatgpt", "gemini"]; // 확장에 콘텐츠 스크립트가 있는 provider
   return {
     host: env.QUERY_HOST || "127.0.0.1",
     port: int(env.QUERY_PORT, 4444),

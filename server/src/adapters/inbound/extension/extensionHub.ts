@@ -41,7 +41,7 @@ export interface HubDeps {
 }
 
 /**
- * 확장과의 WebSocket 프로토콜 처리 (PLAN2 §4.2). 드라이빙 어댑터로서 유스케이스를 호출한다.
+ * 확장과의 WebSocket 프로토콜 처리. 드라이빙 어댑터로서 유스케이스를 호출한다.
  * 서버가 밀어 넣지 않고 확장이 claim으로 가져간다. 새 작업이 생기면 wake만 보낸다.
  */
 export class ExtensionHub implements ExtensionNotifierPort {
@@ -77,7 +77,7 @@ export class ExtensionHub implements ExtensionNotifierPort {
     socket.on("error", onGone);
   }
 
-  /** 새 pending이 생겼음을 접속 중인 모든 확장에 알린다 (PLAN2 §4.4) */
+  /** 새 pending이 생겼음을 접속 중인 모든 확장에 알린다 */
   wake(): void {
     for (const c of this.connections) if (c.clientId) this.send(c, { type: "wake" });
   }
@@ -233,7 +233,7 @@ export class ExtensionHub implements ExtensionNotifierPort {
     const clientId = conn.clientId;
     if (!clientId) return;
     this.deps.presence.disconnect(clientId);
-    // 연결이 끊기면 임대를 즉시 만료 처리 — 회수는 SweepLeases가 수행 (PLAN2 §4.4)
+    // 연결이 끊기면 임대를 즉시 만료 처리 — 회수는 SweepLeases가 수행
     await this.deps.repo.expireLeasesOf(clientId, new Date());
   }
 }

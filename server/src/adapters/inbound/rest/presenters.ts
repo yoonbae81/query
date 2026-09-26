@@ -74,14 +74,14 @@ export function querySummary(q: Query, results: QueryResult[], tz: string) {
   };
 }
 
-/** POST /ask, MCP query_ask 공통 응답 (PLAN §4.6) */
+/** POST /ask, MCP query_ask 공통 응답 */
 export function askPayload(out: AskOutcome): Record<string, unknown> {
   const data: Record<string, unknown> = { query_id: out.queryId, results: out.results.map(resultAsk) };
   if (out.note) data.note = out.note;
   return data;
 }
 
-/** GET /providers, MCP query_providers 공통 응답 (PLAN2 §5.3) */
+/** GET /providers, MCP query_providers 공통 응답 */
 export function providersPayload(c: Container) {
   return {
     providers: Object.entries(PROVIDER_NAMES).map(([id, name]) => ({

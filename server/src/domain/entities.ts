@@ -37,7 +37,7 @@ export interface QueryResult {
   updatedAt: Date;
 }
 
-/** 확장이 가져가 처리하는 작업 (PLAN2 §4.2 job) */
+/** 확장이 가져가 처리하는 작업 */
 export interface Job {
   resultId: string;
   provider: string;
@@ -63,7 +63,7 @@ export function monotonicNow(): Date {
 
 const ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-/** `q_a3f9k2` 형태의 랜덤 ID (PLAN §3.0) */
+/** `q_a3f9k2` 형태의 랜덤 ID */
 export function newId(prefix: string): string {
   let out = "";
   for (let i = 0; i < 6; i++) out += ID_CHARS[randomInt(ID_CHARS.length)];

@@ -1,7 +1,7 @@
 import type { ProviderDescriptor } from "../../../domain/model";
 
 /**
- * 지원 사이트 등록부 (PLAN2 §12.4). 순수 데이터라 빌드 스크립트와 코어가 함께 쓴다.
+ * 지원 사이트 등록부. 순수 데이터라 빌드 스크립트와 코어가 함께 쓴다.
  * provider 추가 절차:
  *   1) providers/<id>/ 에 SiteProviderPort 구현 추가
  *   2) src/content/<id>.ts 콘텐츠 스크립트 진입점 추가

@@ -1,12 +1,12 @@
 import type { QueryRepositoryPort } from "../domain/ports";
 
-/** 확장이 보고하는 오류 유형 (PLAN2 §4.3) */
+/** 확장이 보고하는 오류 유형 */
 export type FailCode = "login_required" | "timeout" | "selector_missing" | "retryable";
 
 export type FailOutcome = "released" | "retry" | "failed" | "ignored";
 
 /**
- * 실패 처리 정책 (PLAN §6.1 f, PLAN2 §4.3).
+ * 실패 처리 정책.
  * - login_required: 재시도 횟수를 늘리지 않고 pending으로 되돌림
  * - 그 외: 최초 1회 + 재시도 maxRetry회까지 backoff 후 재시도, 초과하면 failed
  */

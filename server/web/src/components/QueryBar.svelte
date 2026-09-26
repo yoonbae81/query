@@ -35,7 +35,7 @@
   }
 
   async function submit() {
-    if (submitting) return; // 응답 전 중복 제출 방지 (PLAN §5.1)
+    if (submitting) return; // 응답 전 중복 제출 방지
     const chosen = app.providers.filter((p) => p.available && selected[p.id]).map((p) => p.id);
     if (!text.trim()) return toast.show("질문을 입력하세요", true);
     if (chosen.length === 0) return toast.show("Provider를 선택하세요", true);

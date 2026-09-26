@@ -8,7 +8,7 @@ const INJECT_AFTER_ATTEMPT = 3;
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** 서비스 워커 → 콘텐츠 스크립트 메시징 프록시 (SiteAutomationPort 구현, PLAN2 §12.4) */
+/** 서비스 워커 → 콘텐츠 스크립트 메시징 프록시 (SiteAutomationPort 구현) */
 export class ChromeSiteAutomation implements SiteAutomationPort {
   isLoggedIn(tab: TabRef, provider: ProviderDescriptor): Promise<boolean> {
     return this.call<boolean>(tab, provider, "isLoggedIn", []);

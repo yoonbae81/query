@@ -16,7 +16,7 @@ export interface JobLoopDeps {
 }
 
 /**
- * claim → 처리 → 결과 전송 루프 (PLAN2 §4.2, §6.2).
+ * claim → 처리 → 결과 전송 루프.
  * - 한 번에 하나의 작업만 처리한다(순차).
  * - 작업 사이에 최소 간격(minIntervalSeconds)을 둔다.
  * - idle을 받으면 wake가 올 때까지 대기한다.

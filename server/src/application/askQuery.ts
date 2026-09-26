@@ -13,7 +13,7 @@ const isTerminal = (r: QueryResult) => r.status === "done" || r.status === "fail
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
- * 동기 질의 (PLAN §4.6, PLAN2 §5.2): 높은 우선순위로 등록한 뒤 완료/타임아웃까지 대기한다.
+ * 동기 질의: 높은 우선순위로 등록한 뒤 완료/타임아웃까지 대기한다.
  * 요청 시점에 처리 가능한(online) provider만 기다리고, offline provider는 기다리지 않는다.
  */
 export class AskQuery {

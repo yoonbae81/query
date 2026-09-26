@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   await cp(at("static/ui.css"), resolve(dist, "ui.css"));
   await cp(at("static/icons"), resolve(dist, "icons"), { recursive: true });
 
-  // manifest.json은 provider 등록부에서 생성한다: 새 사이트를 추가해도 매니페스트를 손대지 않는다 (PLAN2 §12.4)
+  // manifest.json은 provider 등록부에서 생성한다: 새 사이트를 추가해도 매니페스트를 손대지 않는다
   const pkg = JSON.parse(await readFile(at("package.json"), "utf8")) as { version: string };
   const icons = { 16: "icons/16.png", 32: "icons/32.png", 48: "icons/48.png", 128: "icons/128.png" };
   const matches = PROVIDERS.flatMap((p) => p.matches);

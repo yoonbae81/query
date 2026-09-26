@@ -4,7 +4,7 @@ import type { TabControllerPort } from "../../../domain/ports";
 const LOAD_TIMEOUT_MS = 30_000;
 const CHANGE_DEBOUNCE_MS = 500;
 
-/** chrome.tabs 기반 탭 탐색/이동 (PLAN2 §6.2: 이미 열려 있는 탭을 사용) */
+/** chrome.tabs 기반 탭 탐색/이동 (이미 열려 있는 탭을 사용) */
 export class ChromeTabController implements TabControllerPort {
   private handler: () => void = () => {};
   private timer: ReturnType<typeof setTimeout> | undefined;

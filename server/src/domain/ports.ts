@@ -103,7 +103,7 @@ export interface PromptInfo {
   size: number;
 }
 
-/** 카테고리별 답변작성 지침 저장소 (user/prompts/<category>.md, PLAN3 §4) */
+/** 카테고리별 답변작성 지침 저장소 (user/prompts/<category>.md) */
 export interface PromptStorePort {
   list(): Promise<PromptInfo[]>;
   /** 없으면 null */
@@ -120,13 +120,13 @@ export interface PresenceSnapshot {
   providers: { id: string; online: boolean; states: ProviderStateValue[] }[];
 }
 
-/** 확장 접속 상태 (PLAN2 §4.5). provider는 ready 상태의 클라이언트가 하나 이상이면 online */
+/** 확장 접속 상태. provider는 ready 상태의 클라이언트가 하나 이상이면 online */
 export interface PresencePort {
   isProviderOnline(provider: string): boolean;
   snapshot(supportedProviders: string[]): PresenceSnapshot;
 }
 
-/** 새 작업이 생겼음을 접속 중인 확장에 알린다 (PLAN2 §4.4 wake) */
+/** 새 작업이 생겼음을 접속 중인 확장에 알린다 */
 export interface ExtensionNotifierPort {
   wake(): void;
 }

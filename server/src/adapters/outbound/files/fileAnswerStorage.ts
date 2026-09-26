@@ -6,7 +6,7 @@ import type { AnswerFileStoragePort } from "../../../domain/ports";
 import { formatIso, formatYyMMdd } from "../../../util/time";
 
 /**
- * `yyMMdd_{query_id}_{provider}.md` 저장 (PLAN §6.7). query_id의 `q_` 접두사는 파일명에서 뺀다
+ * `yyMMdd_{query_id}_{provider}.md` 저장. query_id의 `q_` 접두사는 파일명에서 뺀다
  * (예: 260926_6m1vl6_perplexity.md). 날짜와 시각은 표시 시간대(KST) 기준.
  */
 export class FileAnswerStorage implements AnswerFileStoragePort {

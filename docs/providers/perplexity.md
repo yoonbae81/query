@@ -3,7 +3,7 @@
 코드: `extension/src/adapters/outbound/providers/perplexity/` (`selectors.ts`, `perplexitySite.ts`) · 테스트: `extension/test/providers.test.ts` (`PerplexitySite`)
 절차: [README.md](README.md) · 마지막 검증: **2026-09-26** (smoke 전체 PASS: simple 8.5초, web 18.2초/출처 4건)
 
-> Perplexity는 이 문서 체계 이전(PLAN2 스파이크)에 만들어졌고, 이번 하네스로 실사용 검증만 새로 했다. 셀렉터별 확인 근거는 `selectors.ts` 주석이 원본이다. 로그아웃·typed 캡처를 이 형식으로 다시 남기면 좋다(미실시).
+> Perplexity는 이 문서 체계 이전(초기 스파이크)에 만들어졌고, 이번 하네스로 실사용 검증만 새로 했다. 셀렉터별 확인 근거는 `selectors.ts` 주석이 원본이다. 로그아웃·typed 캡처를 이 형식으로 다시 남기면 좋다(미실시).
 
 ## 요약
 

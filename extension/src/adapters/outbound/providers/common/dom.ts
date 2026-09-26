@@ -34,7 +34,7 @@ export async function waitFor<T>(
 }
 
 export interface StableTextOptions {
-  /** 시작 후 최소 대기 (PLAN §6.3 고정 대기) */
+  /** 시작 후 최소 대기 (고정 대기) */
   minWaitMs: number;
   /** 이 시간 동안 텍스트 변화가 없으면 완료로 간주 */
   stableMs: number;
@@ -44,7 +44,7 @@ export interface StableTextOptions {
   isBusy?: () => boolean;
 }
 
-/** 텍스트가 비어 있지 않고 stableMs 동안 변하지 않으며 busy가 아닐 때까지 기다린다 (PLAN §6.3). */
+/** 텍스트가 비어 있지 않고 stableMs 동안 변하지 않으며 busy가 아닐 때까지 기다린다. */
 export async function waitForStableText(getText: () => string, o: StableTextOptions): Promise<string> {
   const started = Date.now();
   let last = "";

@@ -52,7 +52,7 @@
     }
   }
 
-  // SSE(fetch 스트림, 토큰 헤더 지원)로 실시간 갱신하고, 연결을 쓸 수 없으면 5초 폴링으로 대체한다 (PLAN §5.2)
+  // SSE(fetch 스트림, 토큰 헤더 지원)로 실시간 갱신하고, 연결을 쓸 수 없으면 5초 폴링으로 대체한다
   $effect(() => {
     const queryId = id;
     if (!queryId) return;

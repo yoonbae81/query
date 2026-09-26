@@ -1,7 +1,7 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig } from "vitest/config";
 
-// 서버가 index.html의 %BASE_HREF%를 basePath로 치환한다(PLAN2 §13.3). 개발 서버에서는 "/"로 치환한다.
+// 서버가 index.html의 %BASE_HREF%를 basePath로 치환한다. 개발 서버에서는 "/"로 치환한다.
 export default defineConfig({
   base: "./",
   plugins: [

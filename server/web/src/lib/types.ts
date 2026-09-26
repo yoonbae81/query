@@ -83,7 +83,7 @@ export interface ListParams {
   status?: string;
 }
 
-/** SSE로 받는 결과 갱신 (PLAN §4.11) */
+/** SSE로 받는 결과 갱신 */
 export interface ResultEvent {
   result_id: string;
   provider: string;

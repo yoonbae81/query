@@ -4,7 +4,7 @@ const HOUR_MS = 60 * 60 * 1000;
 const WAKE_CHECK_MS = 5000;
 
 /**
- * API 프로세스의 주기 작업 (PLAN2 §4.4): 임대 회수, TTL 정리, 재시도 대기가 끝난 작업 wake.
+ * API 프로세스의 주기 작업: 임대 회수, TTL 정리, 재시도 대기가 끝난 작업 wake.
  * 반환된 함수를 호출하면 모든 타이머를 멈춘다.
  */
 export function startBackground(c: Container, log: (message: string) => void = console.log): () => void {

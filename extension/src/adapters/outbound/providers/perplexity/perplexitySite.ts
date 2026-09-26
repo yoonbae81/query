@@ -12,7 +12,7 @@ export interface PerplexityTimings {
   submitConfirmTimeoutMs: number;
   /** Links 탭을 누른 뒤 출처 패널이 렌더링되기를 기다리는 시간 */
   sourcesTimeoutMs: number;
-  /** 전송 후 최소 고정 대기 (PLAN §6.3) */
+  /** 전송 후 최소 고정 대기 */
   minWaitMs: number;
   stableMs: number;
   completionTimeoutMs: number;

@@ -2,7 +2,7 @@
 # query-api systemd 유닛 생성·등록 (Linux, root 필요)
 # 사용법: sudo scripts/install-systemd.sh [--user USER] [--no-start]
 #  APP_DIR 기본값: 이 스크립트가 속한 저장소 루트 (예: /opt/query)
-# 서버는 단일 프로세스로 실행해야 한다(확장 접속 상태를 메모리에 두므로, PLAN2 §4.4).
+# 서버는 단일 프로세스로 실행해야 한다(확장 접속 상태를 메모리에 두므로).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

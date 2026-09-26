@@ -109,7 +109,7 @@ PASS를 확인하면 provider 문서의 **변경 이력**에 한 줄(날짜 · �
 
 ## 6. 새 provider 추가 시
 
-1. `extension/src/adapters/outbound/providers/<id>/` 에 `selectors.ts` + `<id>Site.ts`, `extension/src/content/<id>.ts`, `providers/registry.ts` 항목, 서버 `config.ts`의 `supportedProviders` (PLAN3 §6.1).
+1. `extension/src/adapters/outbound/providers/<id>/` 에 `selectors.ts` + `<id>Site.ts`, `extension/src/content/<id>.ts`, `providers/registry.ts` 항목, 서버 `config.ts`의 `supportedProviders`.
 2. 하네스에 등록: `tools/entry.ts` 한 줄, `tools/harness.py`의 `PROVIDERS`와 `TRACE_JS` 항목.
 3. `probe`로 home / typed / generating / done / home-loggedout / 웹 검색 done 을 캡처해 셀렉터를 확정하고 `docs/providers/<id>.md` 를 [claude.md](claude.md) 형식으로 작성한다.
 4. 단위 테스트 작성 → `bundle` → `smoke <id>` PASS.

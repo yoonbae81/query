@@ -3,7 +3,7 @@
  *
  * 검증 상태:
  *  - [확인됨] 관찰 스크립트/콘솔 스니펫(홈, 생성 중)으로 확인한 값
- *  - [추정] 스파이크 전까지의 추정값. 콘솔 스니펫(홈/생성 중/완료 3상태) 결과로 확정한다 — docs/PLAN2.md §7
+ *  - [추정] 캡처 없이 추정한 값. `docs/providers/tools/harness.py probe`(홈/생성 중/완료 상태 캡처)로 확정한다 — docs/providers/README.md
  */
 export const SELECTORS = {
   /** [확인됨] 로그인 후 홈의 질문 입력창 (div, contenteditable 계열) */

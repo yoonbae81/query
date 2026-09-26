@@ -1,4 +1,4 @@
-/** UTC 저장 시각을 표시용 시간대(기본 KST)로 변환한다 (PLAN §3.0). */
+/** UTC 저장 시각을 표시용 시간대(기본 KST)로 변환한다. */
 
 interface Parts {
   year: string;

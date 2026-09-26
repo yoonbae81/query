@@ -1,6 +1,6 @@
 import type { PresencePort, PresenceSnapshot, ProviderStateValue } from "../../../domain/ports";
 
-/** 확장 접속 상태를 메모리로 관리 (PLAN2 §4.5). API 서버는 단일 프로세스로 운영한다. */
+/** 확장 접속 상태를 메모리로 관리. API 서버는 단일 프로세스로 운영한다. */
 export class InMemoryPresence implements PresencePort {
   private readonly clients = new Map<string, Map<string, ProviderStateValue>>();
 

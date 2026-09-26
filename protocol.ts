@@ -1,5 +1,5 @@
 /**
- * 서버 ↔ 브라우저 확장 WebSocket 메시지 타입 (docs/PLAN2.md §4.2).
+ * 서버 ↔ 브라우저 확장 WebSocket 메시지 타입.
  *
  * 서버(server/)와 확장(extension/)이 `import type`으로 공유한다.
  * 규칙: 타입만 둔다. 외부 패키지를 import하지 않는다(루트에는 node_modules가 없다).
@@ -15,7 +15,7 @@ export interface ProviderStateEntry {
   state: ProviderState;
 }
 
-/** 확장이 서버에 보고하는 오류 유형 (PLAN2 §4.3) */
+/** 확장이 서버에 보고하는 오류 유형 */
 export type ErrorCode = "login_required" | "timeout" | "selector_missing" | "retryable";
 
 // ---- 확장 → 서버 ----

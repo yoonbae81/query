@@ -2,7 +2,7 @@
 # query systemd **user** 유닛 등록 (Linux, root 불필요). GitHub Actions 배포(`systemctl --user restart query`)가 이 유닛을 재시작한다.
 # 사용법: scripts/install-systemd-user.sh [--no-start]
 # 사전 조건: `loginctl enable-linger $USER`(로그아웃 후에도 유지), 빌드 결과(server/dist)와 .env
-# 서버는 단일 프로세스로 실행해야 한다(확장 접속 상태를 메모리에 두므로, PLAN2 §4.4).
+# 서버는 단일 프로세스로 실행해야 한다(확장 접속 상태를 메모리에 두므로).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

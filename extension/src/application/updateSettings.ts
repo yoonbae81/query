@@ -21,7 +21,7 @@ export function normalizeSettings(input: ExtensionSettings): ExtensionSettings {
   return { serverUrl, authToken: input.authToken.trim(), minIntervalSeconds };
 }
 
-/** http(s) 서버 주소를 확장 WebSocket 주소로 변환한다 (PLAN2 §4.1) */
+/** http(s) 서버 주소를 확장 WebSocket 주소로 변환한다 */
 export function toWebSocketUrl(settings: ExtensionSettings): string {
   const url = new URL(settings.serverUrl);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";

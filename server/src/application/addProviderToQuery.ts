@@ -10,7 +10,7 @@ export class AddProviderToQuery {
     private readonly notifier?: ExtensionNotifierPort,
   ) {}
 
-  /** 새로 추가된 결과만 반환. 전부 이미 존재하면 빈 배열 (PLAN §4.5, 멱등) */
+  /** 새로 추가된 결과만 반환. 전부 이미 존재하면 빈 배열 */
   async execute(queryId: string, providers: string[], priority = PRIORITY_NORMAL): Promise<QueryResult[]> {
     if (!providers || providers.length === 0) throw new InvalidRequest("providers가 비어 있습니다.");
     const chosen = normalizeProviders(providers, this.supportedProviders, []);

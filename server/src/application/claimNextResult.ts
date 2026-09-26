@@ -2,7 +2,7 @@ import type { Job } from "../domain/entities";
 import type { PromptStorePort, QueryRepositoryPort } from "../domain/ports";
 import { resolvePrompt } from "./prompts";
 
-/** 확장의 claim 요청 처리: 원자적 claim + 답변작성 지침 스냅샷 + 입력문 조합 (PLAN2 §4.2) */
+/** 확장의 claim 요청 처리: 원자적 claim + 답변작성 지침 스냅샷 + 입력문 조합 */
 export class ClaimNextResult {
   constructor(
     private readonly repo: QueryRepositoryPort,

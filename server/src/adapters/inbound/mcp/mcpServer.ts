@@ -17,7 +17,7 @@ const fail = (e: unknown): ToolResult => {
 };
 
 /**
- * MCP 서버 (PLAN §7). REST와 같은 유스케이스를 호출하는 또 하나의 드라이빙 어댑터다.
+ * MCP 서버. REST와 같은 유스케이스를 호출하는 또 하나의 드라이빙 어댑터다.
  * 전송(SSE / Streamable HTTP)마다 연결당 인스턴스를 새로 만든다.
  */
 export function createMcpServer(c: Container): McpServer {

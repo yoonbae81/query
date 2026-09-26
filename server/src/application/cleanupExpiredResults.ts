@@ -2,7 +2,7 @@ import type { AnswerFileStoragePort, QueryRepositoryPort } from "../domain/ports
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** done/failed 후 retentionDays가 지난 결과와 답변 파일을 삭제 (PLAN §3.1) */
+/** done/failed 후 retentionDays가 지난 결과와 답변 파일을 삭제 */
 export class CleanupExpiredResults {
   constructor(
     private readonly repo: QueryRepositoryPort,

@@ -12,7 +12,7 @@ export interface GeminiTimings {
   /** 텍스트 입력 후 전송 버튼이 나타나 활성화되기를 기다리는 시간 */
   submitEnableTimeoutMs: number;
   submitConfirmTimeoutMs: number;
-  /** 전송 후 최소 고정 대기 (PLAN §6.3) */
+  /** 전송 후 최소 고정 대기 */
   minWaitMs: number;
   stableMs: number;
   completionTimeoutMs: number;

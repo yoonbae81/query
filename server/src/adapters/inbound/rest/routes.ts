@@ -10,7 +10,7 @@ const MAX_STREAMS = 100;
 
 type IdParams = { Params: { id: string } };
 
-/** REST API (PLAN §4). basePath는 reverse proxy가 제거해서 전달하므로 라우트는 /api/v1부터다. */
+/** REST API. basePath는 reverse proxy가 제거해서 전달하므로 라우트는 /api/v1부터다. */
 export function registerRestRoutes(app: FastifyInstance, c: Container): void {
   const tz = c.settings.displayTimezone;
   const supported = c.settings.supportedProviders;
@@ -69,7 +69,7 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
     return p.askPayload(out);
   });
 
-  // ---- 카테고리별 답변작성 지침 (user/prompts/<category>.md, PLAN3 §4)
+  // ---- 카테고리별 답변작성 지침 (user/prompts/<category>.md)
   app.get("/categories", async () => ({
     categories: (await c.categories.execute()).map((v) => ({
       category: v.category,

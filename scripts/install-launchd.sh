@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # query 서버를 macOS launchd(LaunchAgent)로 등록한다.
 # 사용법: scripts/install-launchd.sh [--no-start]
-# 서버는 단일 프로세스로 실행해야 한다(확장 접속 상태를 메모리에 두므로, PLAN2 §4.4).
+# 서버는 단일 프로세스로 실행해야 한다(확장 접속 상태를 메모리에 두므로).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -14,7 +14,7 @@ export interface ReporterDeps {
   busyProviders: () => ReadonlySet<string>;
 }
 
-/** 지원 사이트별 탭/로그인 상태를 감지해 서버에 알린다 (PLAN2 §4.2 hello/state). */
+/** 지원 사이트별 탭/로그인 상태를 감지해 서버에 알린다. */
 export class ReportProviderStates {
   private lastSent = "";
 

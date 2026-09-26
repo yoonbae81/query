@@ -86,7 +86,7 @@ export class ExtensionService {
     return { ...this.settings };
   }
 
-  /** ON/OFF 토글: ON일 때만 서버에 연결해 작업을 가져간다 (PLAN2 §6.2) */
+  /** ON/OFF 토글: ON일 때만 서버에 연결해 작업을 가져간다 */
   async setActive(active: boolean): Promise<void> {
     await this.d.store.saveActive(active);
     this.status.update({ active, lastError: null });

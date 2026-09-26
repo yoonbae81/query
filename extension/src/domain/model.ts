@@ -15,7 +15,7 @@ export interface Answer {
   citations: string[];
 }
 
-/** 사이트 자동화 중 발생한 오류. code는 서버에 그대로 보고된다 (PLAN2 §4.3) */
+/** 사이트 자동화 중 발생한 오류. code는 서버에 그대로 보고된다 */
 export class SiteError extends Error {
   constructor(
     readonly code: ErrorCode,
@@ -26,7 +26,7 @@ export class SiteError extends Error {
   }
 }
 
-/** 지원 사이트의 정적 정보. 빌드(manifest 생성)와 코어가 함께 쓴다. provider 추가 = 항목 추가 (PLAN2 §12.4) */
+/** 지원 사이트의 정적 정보. 빌드(manifest 생성)와 코어가 함께 쓴다. provider 추가 = 항목 추가 */
 export interface ProviderDescriptor {
   id: ProviderId;
   name: string;
