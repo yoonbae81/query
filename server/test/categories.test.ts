@@ -27,7 +27,7 @@ describe("카테고리 이름", () => {
   });
 });
 
-describe("카테고리별 답변 작성 지침", () => {
+describe("카테고리별 답변작성 지침", () => {
   it("카테고리 프롬프트가 있으면 그것을, 없으면 general을 적용하고 스냅샷에 남긴다", async () => {
     const c = await makeCore();
     await c.prompts.put("general", "GENERAL");
@@ -116,7 +116,7 @@ describe("목록 필터와 답변 파일", () => {
 
     const file = await c.answerFile.execute(s.query.id, job.resultId);
     expect(file.filename).toMatch(/^\d{6}_[a-z0-9]{6}_perplexity\.md$/);
-    expect(file.content).toContain("## 답변 작성 지침\nLEGAL");
+    expect(file.content).toContain("## 답변작성 지침\nLEGAL");
     expect(file.content).toContain("category: legal");
     expect(readFileSync(join(c.dir, "answers", file.filename), "utf8")).toBe(file.content);
 

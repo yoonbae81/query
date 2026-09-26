@@ -63,7 +63,7 @@ describe("QueryBar", () => {
     expect(perplexity).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /Claude/ })).toBeDisabled();
     expect(screen.getByText(/준비 중/)).toBeInTheDocument();
-    expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("general");
+    expect((screen.getByLabelText("카테고리") as HTMLSelectElement).value).toBe("general");
   });
 
   it("질문과 카테고리를 보내고, 응답 전에는 다시 제출되지 않으며, 성공하면 상세로 이동한다", async () => {
@@ -72,7 +72,7 @@ describe("QueryBar", () => {
     render(QueryBar);
 
     await fireEvent.input(screen.getByLabelText("질문"), { target: { value: "hello" } });
-    await fireEvent.input(screen.getByLabelText("카테고리"), { target: { value: "legal" } });
+    await fireEvent.change(screen.getByLabelText("카테고리"), { target: { value: "legal" } });
     const button = screen.getByRole("button", { name: /질의하기/ });
     await fireEvent.click(button);
     await waitFor(() => expect(button).toBeDisabled());
@@ -102,10 +102,19 @@ describe("QueryBar", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledOnce());
   });
 
+  it("카테고리 드롭다운은 질문 입력칸 앞에 있고 모든 카테고리를 항상 보여준다(입력값으로 걸러지지 않는다)", () => {
+    render(QueryBar);
+    const select = screen.getByLabelText("카테고리") as HTMLSelectElement;
+    const question = screen.getByLabelText("질문");
+    expect(select.compareDocumentPosition(question) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // 카테고리 → 질문 순서
+    expect(select.value).toBe("general");
+    expect([...select.options].map((o) => o.value)).toEqual(["general", "legal", "tech"]);
+  });
+
   it("헤더에서 카테고리를 고르면 입력 카테고리가 따라간다", async () => {
     render(QueryBar);
     app.categoryFilter = "legal";
-    await waitFor(() => expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("legal"));
+    await waitFor(() => expect((screen.getByLabelText("카테고리") as HTMLSelectElement).value).toBe("legal"));
   });
 });
 
@@ -115,7 +124,7 @@ describe("BulkModal", () => {
     const onclose = vi.fn();
     render(BulkModal, { onclose });
     await fireEvent.input(screen.getByLabelText("질문 목록"), { target: { value: "a\n\n b \nc" } });
-    await fireEvent.input(screen.getByLabelText("카테고리"), { target: { value: "tech" } });
+    await fireEvent.change(screen.getByLabelText("카테고리"), { target: { value: "tech" } });
     expect(screen.getByText("3건")).toBeInTheDocument();
     await fireEvent.click(screen.getByRole("button", { name: /일괄 질의하기/ }));
     await waitFor(() => expect(bulk).toHaveBeenCalledWith(["a", "b", "c"], ["perplexity"], "tech"));
@@ -140,22 +149,22 @@ describe("PromptsModal", () => {
     };
   }
 
-  it("general 답변 작성 지침를 불러오고 카테고리 목록을 보여준다", async () => {
+  it("general 답변작성 지침를 불러오고 카테고리 목록을 보여준다", async () => {
     mockPrompts();
     render(PromptsModal, { onclose: () => {} });
     expect(await screen.findByDisplayValue("GENERAL")).toBeInTheDocument();
     for (const name of ["general", "legal", "tech"]) expect(screen.getByRole("button", { name: new RegExp(`^${name}`) })).toBeInTheDocument();
-    expect(screen.getByText("general 적용")).toBeInTheDocument(); // tech는 답변 작성 지침가 없어 general이 적용된다
+    expect(screen.getByText("general 적용")).toBeInTheDocument(); // tech는 답변작성 지침가 없어 general이 적용된다
   });
 
-  it("새 카테고리를 만들어 답변 작성 지침를 저장한다", async () => {
+  it("새 카테고리를 만들어 답변작성 지침를 저장한다", async () => {
     const { save } = mockPrompts();
     render(PromptsModal, { onclose: () => {} });
     await screen.findByDisplayValue("GENERAL");
 
     await fireEvent.input(screen.getByLabelText("새 카테고리"), { target: { value: "Nuclear-Safety" } });
     await fireEvent.click(screen.getByRole("button", { name: "카테고리 추가" }));
-    const editor = await screen.findByLabelText("nuclear-safety 답변 작성 지침");
+    const editor = await screen.findByLabelText("nuclear-safety 답변작성 지침");
     await fireEvent.input(editor, { target: { value: "원전 안전 관점" } });
     await fireEvent.click(screen.getByRole("button", { name: /저장/ }));
     await waitFor(() => expect(save).toHaveBeenCalledWith("nuclear-safety", "원전 안전 관점"));

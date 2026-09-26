@@ -2,7 +2,7 @@ import { api } from "./api";
 import type { CategoryInfo, ExtensionStatus, ProviderInfo, Stats } from "./types";
 
 /**
- * 헤더·쿼리 바·답변 작성 지침 모달이 함께 쓰는 서버 상태.
+ * 헤더·쿼리 바·답변작성 지침 모달이 함께 쓰는 서버 상태.
  * refresh()는 5초마다(탭이 보일 때) 호출되어 헤더 집계와 확장 연결 상태를 갱신한다.
  */
 class AppState {

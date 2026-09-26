@@ -76,7 +76,7 @@ describe("REST API", () => {
     expect(missing.statusCode).toBe(404);
   });
 
-  it("답변 작성 지침 조회/수정", async () => {
+  it("답변작성 지침 조회/수정", async () => {
     srv = await makeServer();
     expect((await srv.app.inject("/api/v1/config/system-prompt")).json().content).toBe("");
     const put = await srv.app.inject({ method: "PUT", url: "/api/v1/config/system-prompt", ...json({ content: "SYS" }) });

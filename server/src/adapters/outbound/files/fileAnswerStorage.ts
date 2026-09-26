@@ -45,7 +45,7 @@ export class FileAnswerStorage implements AnswerFileStoragePort {
     const content =
       `# ${p.queryId} — ${p.provider}\n\n` +
       `## Question\n${p.question}\n\n` +
-      `## 답변 작성 지침\n${p.systemPrompt}\n\n` +
+      `## 답변작성 지침\n${p.systemPrompt}\n\n` +
       `## Answer\n${p.answer.text}\n\n` +
       `## Citations\n${citations}\n\n` +
       `---\n` +

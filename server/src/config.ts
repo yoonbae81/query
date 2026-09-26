@@ -15,7 +15,7 @@ export interface Settings {
   cleanupIntervalHours: number;
   retentionDays: number;
   dbPath: string;
-  /** 카테고리별 답변 작성 지침 디렉터리 (<category>.md, 기본 general.md) */
+  /** 카테고리별 답변작성 지침 디렉터리 (<category>.md, 기본 general.md) */
   promptsDir: string;
   answersDir: string;
   webDistDir: string;

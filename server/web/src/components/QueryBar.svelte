@@ -22,7 +22,7 @@
     }
   });
 
-  // 헤더에서 카테고리를 고르면 입력 카테고리도 따라간다 (전체 선택 시에는 그대로 둔다)
+  // 목록 필터(app.categoryFilter)가 정해지면 입력 카테고리도 따라간다
   $effect(() => {
     const filter = app.categoryFilter;
     if (filter) category = filter;
@@ -64,6 +64,7 @@
 </script>
 
 <div class="query-bar">
+  <CategoryInput bind:value={category} id="bar-category" />
   <textarea
     bind:this={inputEl}
     bind:value={text}
@@ -74,7 +75,6 @@
     aria-label="질문"
   ></textarea>
   <div class="controls">
-    <CategoryInput bind:value={category} id="bar-category" />
     <ProviderChips providers={app.providers} bind:selected />
     <button class="primary send" onclick={submit} disabled={submitting}>
       <Send size={16} />질의하기
@@ -84,14 +84,14 @@
 
 <style>
   .query-bar {
-    display: flex; gap: 12px; align-items: flex-end; background: var(--bg-surface); padding: 12px 16px; border-radius: 8px;
+    display: flex; gap: 12px; align-items: stretch; background: var(--bg-surface); padding: 12px 16px; border-radius: 8px;
     border: 1px solid var(--border);
   }
   .q-input { flex: 1; min-width: 0; min-height: 40px; max-height: 168px; line-height: 1.5; padding: 9px 12px; font-size: 15px; resize: none; }
-  .controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+  .controls { display: flex; align-items: center; align-self: flex-end; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
   .send { height: 40px; white-space: nowrap; padding: 0 18px; }
   @media (max-width: 980px) {
     .query-bar { flex-direction: column; align-items: stretch; }
-    .controls { justify-content: flex-start; }
+    .controls { align-self: stretch; justify-content: flex-start; }
   }
 </style>

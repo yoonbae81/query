@@ -69,7 +69,7 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
     return p.askPayload(out);
   });
 
-  // ---- 카테고리별 답변 작성 지침 (user/prompts/<category>.md, PLAN3 §4)
+  // ---- 카테고리별 답변작성 지침 (user/prompts/<category>.md, PLAN3 §4)
   app.get("/categories", async () => ({
     categories: (await c.categories.execute()).map((v) => ({
       category: v.category,
@@ -96,7 +96,7 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
     return reply.code(204).send();
   });
 
-  // 하위 호환: 예전 단일 답변 작성 지침 API는 general 답변 작성 지침를 가리킨다
+  // 하위 호환: 예전 단일 답변작성 지침 API는 general 답변작성 지침를 가리킨다
   app.get("/config/system-prompt", async () => promptPayload(await c.prompts.get("general")));
   app.put("/config/system-prompt", async (req) => {
     const body = parseBody(systemPromptBody, req.body);

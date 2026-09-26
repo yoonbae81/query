@@ -82,7 +82,7 @@
       <button class="icon-btn" class:active={activeModal === "bulk"} onclick={onbulk} title="벌크 입력" aria-label="벌크 입력">
         <ListPlus size={16} />
       </button>
-      <button class="icon-btn" class:active={activeModal === "prompts"} onclick={onprompts} title="카테고리별 답변 작성 지침" aria-label="카테고리별 답변 작성 지침">
+      <button class="icon-btn" class:active={activeModal === "prompts"} onclick={onprompts} title="카테고리별 답변작성 지침" aria-label="카테고리별 답변작성 지침">
         <ScrollText size={16} />
       </button>
       <button class="icon-btn" onclick={cycleTheme} title="테마: {THEME_LABEL[themeMode]}" aria-label="테마 변경 (현재: {THEME_LABEL[themeMode]})">

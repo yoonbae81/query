@@ -7,7 +7,7 @@ import type { PromptInfo, PromptStorePort } from "../../../domain/ports";
 const EXT = ".md";
 
 /**
- * 카테고리별 답변 작성 지침를 `<dir>/<category>.md` 파일로 관리한다.
+ * 카테고리별 답변작성 지침를 `<dir>/<category>.md` 파일로 관리한다.
  * 카테고리 이름은 도메인 규칙(글자·숫자·-·_)으로 검증되므로 경로 이탈이 불가능하다.
  */
 export class FilePromptStore implements PromptStorePort {

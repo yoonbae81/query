@@ -33,7 +33,7 @@ export function createMcpServer(c: Container): McpServer {
       inputSchema: {
         question: z.string().describe("질문"),
         providers: z.array(z.string()).optional().describe("질의할 provider id 목록 (기본 perplexity)"),
-        category: z.string().optional().describe("질문 카테고리. 해당 카테고리의 답변 작성 지침가 적용된다 (기본 general)"),
+        category: z.string().optional().describe("질문 카테고리. 해당 카테고리의 답변작성 지침가 적용된다 (기본 general)"),
         timeout_seconds: z.number().optional().describe("대기 시간(초). 기본 60, 최대 300"),
       },
     },
