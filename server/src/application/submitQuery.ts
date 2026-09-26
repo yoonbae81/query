@@ -6,6 +6,7 @@ import {
   type Query,
   type QueryResult,
 } from "../domain/entities";
+import { normalizeCategory } from "../domain/category";
 import { InvalidRequest } from "../domain/errors";
 import type { ExtensionNotifierPort, QueryRepositoryPort } from "../domain/ports";
 
@@ -38,9 +39,9 @@ export class SubmitQuery {
     private readonly notifier?: ExtensionNotifierPort,
   ) {}
 
-  private build(text: string, providers: string[], batchId: string | null, priority: number): Submitted {
+  private build(text: string, providers: string[], batchId: string | null, priority: number, category: string): Submitted {
     const now = monotonicNow();
-    const query: Query = { id: newId("q"), queryText: text, providers, batchId, createdAt: now };
+    const query: Query = { id: newId("q"), queryText: text, category, providers, batchId, createdAt: now };
     return { query, results: providers.map((p) => newQueryResult(query.id, p, priority, now)) };
   }
 
@@ -53,10 +54,15 @@ export class SubmitQuery {
     return t;
   }
 
-  async submit(text: string, providers?: string[] | null, priority = PRIORITY_NORMAL): Promise<Submitted> {
+  async submit(
+    text: string,
+    providers?: string[] | null,
+    priority = PRIORITY_NORMAL,
+    category?: string | null,
+  ): Promise<Submitted> {
     const t = this.checkText(text);
     const chosen = normalizeProviders(providers, this.supportedProviders, this.defaultProviders);
-    const s = this.build(t, chosen, null, priority);
+    const s = this.build(t, chosen, null, priority, normalizeCategory(category));
     await this.repo.createQueries([s]);
     this.notifier?.wake();
     return s;
@@ -65,6 +71,7 @@ export class SubmitQuery {
   async submitBulk(
     texts: string[],
     providers?: string[] | null,
+    category?: string | null,
   ): Promise<{ batchId: string; items: Submitted[] }> {
     const cleaned = texts.map((t) => t.trim()).filter((t) => t.length > 0);
     if (cleaned.length === 0) throw new InvalidRequest("등록할 질문이 없습니다.");
@@ -73,8 +80,9 @@ export class SubmitQuery {
     }
     const checked = cleaned.map((t) => this.checkText(t));
     const chosen = normalizeProviders(providers, this.supportedProviders, this.defaultProviders);
+    const cat = normalizeCategory(category);
     const batchId = newId("b");
-    const items = checked.map((t) => this.build(t, chosen, batchId, PRIORITY_NORMAL));
+    const items = checked.map((t) => this.build(t, chosen, batchId, PRIORITY_NORMAL, cat));
     await this.repo.createQueries(items);
     this.notifier?.wake();
     return { batchId, items };

@@ -34,8 +34,8 @@ npm("--prefix", "server", "run", "build");
 npm("--prefix", "extension", "run", "build");
 
 console.log("==> user/ 디렉터리 준비");
-for (const dir of ["user/config", "user/answers", "user/logs"]) mkdirSync(dir, { recursive: true });
-const promptFile = "user/config/system_prompt.md";
+for (const dir of ["user/database", "user/prompts", "user/answers", "user/logs"]) mkdirSync(dir, { recursive: true });
+const promptFile = "user/prompts/general.md";
 if (!existsSync(promptFile)) writeFileSync(promptFile, "간결하고 정확하게 답변하고, 출처를 명시하세요.\n", "utf8");
 
 if (!existsSync(".env")) {

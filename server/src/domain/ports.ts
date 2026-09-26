@@ -1,4 +1,4 @@
-import type { ProviderAnswer, Query, QueryResult } from "./entities";
+import type { ProviderAnswer, Query, QueryResult, ResultStatus } from "./entities";
 
 export interface QueryWithResults {
   query: Query;
@@ -13,8 +13,21 @@ export interface QueryPage {
 export interface ListQueriesParams {
   status?: string;
   batchId?: string;
+  category?: string;
+  /** 질문 텍스트 부분 일치 검색 */
+  search?: string;
   limit: number;
   cursor?: string;
+}
+
+export interface CategoryCount {
+  category: string;
+  count: number;
+}
+
+export interface Stats {
+  queries: number;
+  results: Record<ResultStatus, number>;
 }
 
 export interface ClaimParams {
@@ -33,6 +46,9 @@ export interface QueryRepositoryPort {
   getResults(queryId: string): Promise<QueryResult[]>;
   getResult(resultId: string): Promise<QueryResult | null>;
   listQueries(params: ListQueriesParams): Promise<QueryPage>;
+  /** 질문에 사용된 카테고리와 질문 수 */
+  listCategories(): Promise<CategoryCount[]>;
+  stats(): Promise<Stats>;
 
   /** provider의 다음 pending을 priority DESC, created_at ASC 순으로 원자적으로 claim (임대 설정 포함) */
   claimNext(params: ClaimParams): Promise<QueryResult | null>;
@@ -64,23 +80,37 @@ export interface QueryRepositoryPort {
 }
 
 export interface AnswerFileStoragePort {
-  /** 저장 후 상대 경로 반환 (예: answers/250925_q_abc123_perplexity.md) */
+  /** 저장 후 상대 경로 반환 (예: answers/250925_abc123_perplexity.md) */
   save(params: {
     queryId: string;
     provider: string;
+    category: string;
     systemPrompt: string;
     question: string;
     answer: ProviderAnswer;
     createdAt: Date;
     answeredAt: Date;
   }): Promise<string>;
+  /** 저장된 파일 내용. 없으면 null */
+  read(path: string): Promise<string | null>;
   delete(path: string): Promise<void>;
 }
 
-export interface SystemPromptConfigPort {
-  /** 파일이 없으면 ("", 현재시각) */
-  read(): Promise<{ content: string; updatedAt: Date }>;
-  write(content: string): Promise<Date>;
+export interface PromptInfo {
+  category: string;
+  updatedAt: Date;
+  /** 글자 수 */
+  size: number;
+}
+
+/** 카테고리별 시스템 프롬프트 저장소 (user/prompts/<category>.md, PLAN3 §4) */
+export interface PromptStorePort {
+  list(): Promise<PromptInfo[]>;
+  /** 없으면 null */
+  read(category: string): Promise<{ content: string; updatedAt: Date } | null>;
+  write(category: string, content: string): Promise<Date>;
+  /** 삭제했으면 true, 원래 없었으면 false */
+  delete(category: string): Promise<boolean>;
 }
 
 export type ProviderStateValue = "ready" | "login_required" | "no_tab";

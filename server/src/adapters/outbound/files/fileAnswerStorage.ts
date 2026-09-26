@@ -1,27 +1,46 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { basename, dirname, join, resolve, sep } from "node:path";
 
 import type { ProviderAnswer } from "../../../domain/entities";
 import type { AnswerFileStoragePort } from "../../../domain/ports";
 import { formatIso, formatYyMMdd } from "../../../util/time";
 
-/** `yyMMdd_{query_id}_{provider}.md` 저장 (PLAN §6.7). 날짜와 시각은 표시 시간대(KST) 기준. */
+/**
+ * `yyMMdd_{query_id}_{provider}.md` 저장 (PLAN §6.7). query_id의 `q_` 접두사는 파일명에서 뺀다
+ * (예: 260926_6m1vl6_perplexity.md). 날짜와 시각은 표시 시간대(KST) 기준.
+ */
 export class FileAnswerStorage implements AnswerFileStoragePort {
+  private readonly dir: string;
+
   constructor(
-    private readonly answersDir: string,
+    answersDir: string,
     private readonly timeZone: string,
-  ) {}
+  ) {
+    this.dir = resolve(answersDir);
+  }
+
+  private iso(dt: Date): string {
+    return formatIso(dt, this.timeZone);
+  }
+
+  /** DB에 저장된 상대 경로(answers/…)를 실제 경로로 바꾼다. 답변 디렉터리 밖이면 null */
+  private resolveInside(path: string): string | null {
+    const full = resolve(dirname(this.dir), path);
+    return full.startsWith(this.dir + sep) ? full : null;
+  }
 
   async save(p: {
     queryId: string;
     provider: string;
+    category: string;
     systemPrompt: string;
     question: string;
     answer: ProviderAnswer;
     createdAt: Date;
     answeredAt: Date;
   }): Promise<string> {
-    const name = `${formatYyMMdd(p.answeredAt, this.timeZone)}_${p.queryId}_${p.provider}.md`;
+    const id = p.queryId.replace(/^q_/, "");
+    const name = `${formatYyMMdd(p.answeredAt, this.timeZone)}_${id}_${p.provider}.md`;
     const citations = p.answer.citations.map((c) => `- ${c}`).join("\n");
     const content =
       `# ${p.queryId} — ${p.provider}\n\n` +
@@ -31,14 +50,27 @@ export class FileAnswerStorage implements AnswerFileStoragePort {
       `## Citations\n${citations}\n\n` +
       `---\n` +
       `provider: ${p.provider}\n` +
-      `created_at: ${formatIso(p.createdAt, this.timeZone)}\n` +
-      `answered_at: ${formatIso(p.answeredAt, this.timeZone)}\n`;
-    await mkdir(this.answersDir, { recursive: true });
-    await writeFile(join(this.answersDir, name), content, "utf8");
-    return `${basename(this.answersDir)}/${name}`;
+      `category: ${p.category}\n` +
+      `created_at: ${this.iso(p.createdAt)}\n` +
+      `answered_at: ${this.iso(p.answeredAt)}\n`;
+    await mkdir(this.dir, { recursive: true });
+    await writeFile(join(this.dir, name), content, "utf8");
+    return `${basename(this.dir)}/${name}`;
+  }
+
+  async read(path: string): Promise<string | null> {
+    const full = this.resolveInside(path);
+    if (!full) return null;
+    try {
+      return await readFile(full, "utf8");
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw e;
+    }
   }
 
   async delete(path: string): Promise<void> {
-    await rm(join(dirname(this.answersDir), path), { force: true });
+    const full = this.resolveInside(path);
+    if (full) await rm(full, { force: true });
   }
 }

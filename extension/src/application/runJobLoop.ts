@@ -98,6 +98,7 @@ export class RunJobLoop {
       this.d.gateway.send({ type: "progress", result_id: job.resultId, message });
       setMessage(message);
     };
+    this.d.status.update({ lastError: null }); // 새 작업을 시작하면 이전 작업의 오류 표시는 지운다
     setMessage("시작");
 
     try {

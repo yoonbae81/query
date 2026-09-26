@@ -1,64 +1,294 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../lib/api";
+import { router } from "../lib/router.svelte";
+import { app } from "../lib/stores.svelte";
+import { applyTheme, getStoredThemeMode, nextThemeMode, setStoredThemeMode } from "../lib/theme";
 import { toast } from "../lib/toast.svelte";
-import type { ProviderInfo } from "../lib/types";
+import type { CategoryInfo, ProviderInfo, QuerySummary } from "../lib/types";
+import BulkModal from "./BulkModal.svelte";
+import Header from "./Header.svelte";
 import MarkdownView, { renderMarkdown } from "./MarkdownView.svelte";
-import QueryForm from "./QueryForm.svelte";
+import PromptsModal from "./PromptsModal.svelte";
+import QueryBar from "./QueryBar.svelte";
+import QueryListPanel from "./QueryListPanel.svelte";
 
 const PROVIDERS: ProviderInfo[] = [
   { id: "perplexity", name: "Perplexity", available: true, online: true },
   { id: "claude", name: "Claude", available: false, online: false },
 ];
+const CATEGORIES: CategoryInfo[] = [
+  { category: "general", has_prompt: true, prompt_size: 3, query_count: 2 },
+  { category: "legal", has_prompt: true, prompt_size: 5, query_count: 1 },
+  { category: "tech", has_prompt: false, prompt_size: 0, query_count: 1 },
+];
 
-afterEach(() => vi.restoreAllMocks());
+function item(over: Partial<QuerySummary> = {}): QuerySummary {
+  return {
+    query_id: "q_1",
+    batch_id: null,
+    category: "general",
+    query: "원자력 인허가 절차",
+    created_at: "2026-09-26T19:00:00+09:00",
+    answer_preview: null,
+    results_summary: [{ provider: "perplexity", status: "done" }],
+    ...over,
+  };
+}
 
-describe("QueryForm", () => {
-  it("Perplexity가 기본 체크되고 미지원 provider는 비활성이다", async () => {
-    render(QueryForm, { providers: PROVIDERS, onsubmitted: () => {} });
-    const perplexity = (await screen.findByLabelText("Perplexity")) as HTMLInputElement;
-    const claude = screen.getByLabelText(/Claude/) as HTMLInputElement;
-    expect(perplexity.checked).toBe(true);
-    expect(claude.disabled).toBe(true);
+beforeEach(() => {
+  app.providers = PROVIDERS;
+  app.categories = CATEGORIES;
+  app.stats = { queries: 4, results: { pending: 1, processing: 1, done: 2, failed: 0 } };
+  app.extension = { connected: true, clients: 1, providers: [{ id: "perplexity", name: "Perplexity", online: true, states: ["ready"] }] };
+  app.categoryFilter = null;
+  vi.spyOn(api, "providers").mockResolvedValue(PROVIDERS);
+  vi.spyOn(api, "categories").mockResolvedValue(CATEGORIES);
+  vi.spyOn(api, "stats").mockResolvedValue(app.stats);
+  vi.spyOn(api, "extensionStatus").mockResolvedValue(app.extension);
+  router.route = { name: "home" };
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
+
+describe("QueryBar", () => {
+  it("Perplexity가 기본 선택이고 미지원 provider는 비활성이다", async () => {
+    render(QueryBar);
+    const perplexity = await screen.findByRole("button", { name: /Perplexity/ });
+    expect(perplexity).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Claude/ })).toBeDisabled();
     expect(screen.getByText(/준비 중/)).toBeInTheDocument();
+    expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("general");
   });
 
-  it("요청 응답 전에는 제출 버튼이 비활성이고, 성공하면 목록 갱신을 알린다", async () => {
-    let resolve!: () => void;
-    const spy = vi.spyOn(api, "submit").mockReturnValue(new Promise((r) => (resolve = () => r({ query_id: "q_1" }))));
-    const onsubmitted = vi.fn();
-    render(QueryForm, { providers: PROVIDERS, onsubmitted });
+  it("질문과 카테고리를 보내고, 응답 전에는 다시 제출되지 않으며, 성공하면 상세로 이동한다", async () => {
+    let resolve!: (v: { query_id: string }) => void;
+    const submit = vi.spyOn(api, "submit").mockReturnValue(new Promise((r) => (resolve = r)));
+    render(QueryBar);
 
     await fireEvent.input(screen.getByLabelText("질문"), { target: { value: "hello" } });
+    await fireEvent.input(screen.getByLabelText("카테고리"), { target: { value: "legal" } });
     const button = screen.getByRole("button", { name: /질의하기/ });
     await fireEvent.click(button);
     await waitFor(() => expect(button).toBeDisabled());
     await fireEvent.click(button); // 연타해도 한 번만 전송
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith("hello", ["perplexity"]);
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(submit).toHaveBeenCalledWith("hello", ["perplexity"], "legal");
 
-    resolve();
+    resolve({ query_id: "q_new" });
     await waitFor(() => expect(button).not.toBeDisabled());
-    expect(onsubmitted).toHaveBeenCalledOnce();
+    expect(router.route).toEqual({ name: "detail", id: "q_new" });
     expect(toast.message).toBe("질의가 접수되었습니다(1건 × 1 provider)");
+    expect((screen.getByLabelText("질문") as HTMLTextAreaElement).value).toBe("");
   });
 
-  it("벌크 입력은 줄 단위로 분리해 일괄 등록한다", async () => {
-    const spy = vi.spyOn(api, "submitBulk").mockResolvedValue({ items: [{}, {}] });
-    render(QueryForm, { providers: PROVIDERS, onsubmitted: () => {} });
-    await fireEvent.click(screen.getByRole("tab", { name: "벌크 입력" }));
-    await fireEvent.input(screen.getByLabelText("질문"), { target: { value: "a\n\n b \nc" } });
-    await fireEvent.click(screen.getByRole("button", { name: /일괄 질의하기/ }));
-    await waitFor(() => expect(spy).toHaveBeenCalledWith(["a", "b", "c"], ["perplexity"]));
-  });
-
-  it("빈 질문은 전송하지 않는다", async () => {
-    const spy = vi.spyOn(api, "submit");
-    render(QueryForm, { providers: PROVIDERS, onsubmitted: () => {} });
-    await fireEvent.click(screen.getByRole("button", { name: /질의하기/ }));
-    expect(spy).not.toHaveBeenCalled();
+  it("Enter로 제출하고 Shift+Enter는 줄바꿈이며 빈 질문은 보내지 않는다", async () => {
+    const submit = vi.spyOn(api, "submit").mockResolvedValue({ query_id: "q_2" });
+    render(QueryBar);
+    const input = screen.getByLabelText("질문");
+    await fireEvent.keyDown(input, { key: "Enter" });
+    expect(submit).not.toHaveBeenCalled();
     expect(toast.message).toBe("질문을 입력하세요");
+
+    await fireEvent.input(input, { target: { value: "q" } });
+    await fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+    expect(submit).not.toHaveBeenCalled();
+    await fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+  });
+
+  it("헤더에서 카테고리를 고르면 입력 카테고리가 따라간다", async () => {
+    render(QueryBar);
+    app.categoryFilter = "legal";
+    await waitFor(() => expect((screen.getByLabelText("카테고리") as HTMLInputElement).value).toBe("legal"));
+  });
+});
+
+describe("BulkModal", () => {
+  it("줄 단위로 분리해 카테고리와 함께 일괄 등록한다", async () => {
+    const bulk = vi.spyOn(api, "submitBulk").mockResolvedValue({ items: [{ query_id: "a" }, { query_id: "b" }, { query_id: "c" }] });
+    const onclose = vi.fn();
+    render(BulkModal, { onclose });
+    await fireEvent.input(screen.getByLabelText("질문 목록"), { target: { value: "a\n\n b \nc" } });
+    await fireEvent.input(screen.getByLabelText("카테고리"), { target: { value: "tech" } });
+    expect(screen.getByText("3건")).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: /일괄 질의하기/ }));
+    await waitFor(() => expect(bulk).toHaveBeenCalledWith(["a", "b", "c"], ["perplexity"], "tech"));
+    expect(onclose).toHaveBeenCalled();
+    expect(toast.message).toContain("3건");
+  });
+
+  it("Esc로 닫힌다", async () => {
+    const onclose = vi.fn();
+    render(BulkModal, { onclose });
+    await fireEvent.keyDown(window, { key: "Escape" });
+    expect(onclose).toHaveBeenCalled();
+  });
+});
+
+describe("PromptsModal", () => {
+  function mockPrompts() {
+    vi.spyOn(api, "getPrompt").mockImplementation(async (c) => ({ category: c, content: c === "general" ? "GENERAL" : "", updated_at: "" }));
+    return {
+      save: vi.spyOn(api, "savePrompt").mockImplementation(async (c, content) => ({ category: c, content, updated_at: "" })),
+      del: vi.spyOn(api, "deletePrompt").mockResolvedValue(null),
+    };
+  }
+
+  it("general 프롬프트를 불러오고 카테고리 목록을 보여준다", async () => {
+    mockPrompts();
+    render(PromptsModal, { onclose: () => {} });
+    expect(await screen.findByDisplayValue("GENERAL")).toBeInTheDocument();
+    for (const name of ["general", "legal", "tech"]) expect(screen.getByRole("button", { name: new RegExp(`^${name}`) })).toBeInTheDocument();
+    expect(screen.getByText("general 적용")).toBeInTheDocument(); // tech는 프롬프트가 없어 general이 적용된다
+  });
+
+  it("새 카테고리를 만들어 프롬프트를 저장한다", async () => {
+    const { save } = mockPrompts();
+    render(PromptsModal, { onclose: () => {} });
+    await screen.findByDisplayValue("GENERAL");
+
+    await fireEvent.input(screen.getByLabelText("새 카테고리"), { target: { value: "Nuclear-Safety" } });
+    await fireEvent.click(screen.getByRole("button", { name: "카테고리 추가" }));
+    const editor = await screen.findByLabelText("nuclear-safety 시스템 프롬프트");
+    await fireEvent.input(editor, { target: { value: "원전 안전 관점" } });
+    await fireEvent.click(screen.getByRole("button", { name: /저장/ }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith("nuclear-safety", "원전 안전 관점"));
+  });
+
+  it("잘못된 카테고리 이름은 서버에 보내기 전에 거절한다", async () => {
+    mockPrompts();
+    render(PromptsModal, { onclose: () => {} });
+    await screen.findByDisplayValue("GENERAL");
+    await fireEvent.input(screen.getByLabelText("새 카테고리"), { target: { value: "../evil" } });
+    await fireEvent.click(screen.getByRole("button", { name: "카테고리 추가" }));
+    expect(toast.message).toContain("카테고리는");
+    expect(screen.queryByLabelText(/evil/)).toBeNull();
+  });
+
+  it("삭제는 두 번 눌러야 하고 general은 삭제 버튼이 없다", async () => {
+    const { del } = mockPrompts();
+    render(PromptsModal, { onclose: () => {} });
+    await screen.findByDisplayValue("GENERAL");
+    expect(screen.queryByRole("button", { name: /삭제/ })).toBeNull();
+
+    await fireEvent.click(screen.getByRole("button", { name: /^legal/ }));
+    const button = await screen.findByRole("button", { name: "삭제" });
+    await fireEvent.click(button);
+    expect(del).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole("button", { name: "삭제 확인" }));
+    await waitFor(() => expect(del).toHaveBeenCalledWith("legal"));
+  });
+
+  it("저장하지 않은 변경이 있으면 다른 카테고리로 옮기기 전에 확인한다", async () => {
+    mockPrompts();
+    const confirmFn = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirmFn);
+    render(PromptsModal, { onclose: () => {} });
+    const editor = await screen.findByDisplayValue("GENERAL");
+    await fireEvent.input(editor, { target: { value: "수정" } });
+    expect(screen.getByText("수정됨")).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: /^legal/ }));
+    expect(confirmFn).toHaveBeenCalled();
+    expect(screen.getByDisplayValue("수정")).toBeInTheDocument(); // 취소했으니 그대로
+  });
+});
+
+describe("QueryListPanel", () => {
+  it("질의를 카드로 보여주고 답변 미리보기·카테고리를 표시하며 클릭하면 상세로 이동한다", async () => {
+    vi.spyOn(api, "listQueries").mockResolvedValue({
+      items: [item({ answer_preview: "인허가는 부지승인, 건설허가…", category: "legal" }), item({ query_id: "q_2", query: "두 번째", results_summary: [{ provider: "perplexity", status: "processing" }] })],
+      next_cursor: null,
+    });
+    render(QueryListPanel);
+    expect(await screen.findByText("원자력 인허가 절차")).toBeInTheDocument();
+    expect(screen.getByText("인허가는 부지승인, 건설허가…")).toBeInTheDocument();
+    expect(screen.getByText("legal")).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByText("두 번째"));
+    expect(router.route).toEqual({ name: "detail", id: "q_2" });
+  });
+
+  it("카테고리 필터·상태·검색어를 서버에 전달한다", async () => {
+    const list = vi.spyOn(api, "listQueries").mockResolvedValue({ items: [], next_cursor: null });
+    render(QueryListPanel);
+    await screen.findByText("등록된 질의가 없습니다");
+    expect(list).toHaveBeenLastCalledWith({ limit: 20, category: null, search: "", status: "" });
+
+    app.categoryFilter = "legal";
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ category: "legal" })));
+
+    await fireEvent.change(screen.getByLabelText("상태 필터"), { target: { value: "done" } });
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ status: "done" })));
+
+    await fireEvent.input(screen.getByLabelText("질문 검색"), { target: { value: "변전소" } });
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ search: "변전소" })), { timeout: 1500 });
+  });
+
+  it("더 보기로 다음 페이지를 이어 붙인다", async () => {
+    const list = vi
+      .spyOn(api, "listQueries")
+      .mockResolvedValueOnce({ items: [item()], next_cursor: "CUR" })
+      .mockResolvedValueOnce({ items: [item({ query_id: "q_9", query: "다음 페이지" })], next_cursor: null });
+    render(QueryListPanel);
+    await screen.findByText("원자력 인허가 절차");
+    await fireEvent.click(screen.getByRole("button", { name: "더 보기" }));
+    expect(await screen.findByText("다음 페이지")).toBeInTheDocument();
+    expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: "CUR" }));
+    expect(screen.queryByRole("button", { name: "더 보기" })).toBeNull();
+  });
+});
+
+describe("Header", () => {
+  it("집계와 확장 상태를 보여주고 카테고리를 전환한다", async () => {
+    render(Header, { onbulk: () => {}, onprompts: () => {} });
+    expect(screen.getByText("Queue: 2")).toBeInTheDocument();
+    expect(screen.getByText("답변: 2")).toBeInTheDocument();
+    expect(screen.getByText("확장 연결됨")).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByRole("button", { name: "legal" }));
+    expect(app.categoryFilter).toBe("legal");
+    await fireEvent.click(screen.getByRole("button", { name: "전체" }));
+    expect(app.categoryFilter).toBeNull();
+  });
+
+  it("확장이 없으면 끊김으로 표시한다", () => {
+    app.extension = { connected: false, clients: 0, providers: [] };
+    render(Header, { onbulk: () => {}, onprompts: () => {} });
+    expect(screen.getByText("확장 끊김")).toBeInTheDocument();
+  });
+
+  it("테마 버튼은 auto → light → dark 순으로 돌고 저장된다", async () => {
+    render(Header, { onbulk: () => {}, onprompts: () => {} });
+    const button = () => screen.getByRole("button", { name: /테마 변경/ });
+    await fireEvent.click(button());
+    expect(localStorage.getItem("query_theme")).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    await fireEvent.click(button());
+    expect(localStorage.getItem("query_theme")).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+});
+
+describe("theme", () => {
+  it("순환 순서와 저장/기본값", () => {
+    expect(["auto", "light", "dark"].map((m) => nextThemeMode(m as never))).toEqual(["light", "dark", "auto"]);
+    expect(getStoredThemeMode()).toBe("auto");
+    setStoredThemeMode("light");
+    expect(getStoredThemeMode()).toBe("light");
+    localStorage.setItem("query_theme", "garbage");
+    expect(getStoredThemeMode()).toBe("auto");
+  });
+
+  it("auto는 시스템 설정을 따른다", () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("light"), addEventListener() {}, removeEventListener() {} }));
+    applyTheme("auto");
+    expect(document.documentElement.dataset.theme).toBe("light");
   });
 });
 

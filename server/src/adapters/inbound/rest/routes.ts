@@ -33,7 +33,7 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
 
   app.post("/queries", async (req, reply) => {
     const body = parseBody(submitBody, req.body);
-    const s = await c.submit.submit(body.query, body.providers);
+    const s = await c.submit.submit(body.query, body.providers, undefined, body.category);
     return reply.code(201).send({
       query_id: s.query.id,
       created_at: p.fmt(s.query.createdAt, tz),
@@ -43,7 +43,7 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
 
   app.post("/queries/bulk", async (req, reply) => {
     const body = parseBody(bulkBody, req.body);
-    const { batchId, items } = await c.submit.submitBulk(body.queries, body.providers);
+    const { batchId, items } = await c.submit.submitBulk(body.queries, body.providers, body.category);
     return reply.code(201).send({
       batch_id: batchId,
       items: items.map((i) => ({ query_id: i.query.id, results: i.results.map(p.resultCreated) })),
@@ -63,29 +63,62 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
     const out = await c.ask.execute({
       question: body.question,
       providers: body.providers,
+      category: body.category,
       timeoutSeconds: numberParam("timeout_seconds", req.query.timeout_seconds),
     });
     return p.askPayload(out);
   });
 
-  app.get("/config/system-prompt", async () => {
-    const { content, updatedAt } = await c.systemPrompt.get();
-    return { content, updated_at: p.fmt(updatedAt, tz) };
+  // ---- 카테고리별 시스템 프롬프트 (user/prompts/<category>.md, PLAN3 §4)
+  app.get("/categories", async () => ({
+    categories: (await c.categories.execute()).map((v) => ({
+      category: v.category,
+      has_prompt: v.hasPrompt,
+      prompt_size: v.promptSize,
+      query_count: v.queryCount,
+    })),
+  }));
+
+  const promptPayload = (v: { category: string; content: string; updatedAt: Date }) => ({
+    category: v.category,
+    content: v.content,
+    updated_at: p.fmt(v.updatedAt, tz),
+  });
+  app.get<{ Params: { category: string } }>("/prompts/:category", async (req) =>
+    promptPayload(await c.prompts.get(req.params.category)),
+  );
+  app.put<{ Params: { category: string } }>("/prompts/:category", async (req) => {
+    const body = parseBody(systemPromptBody, req.body);
+    return promptPayload(await c.prompts.put(req.params.category, body.content));
+  });
+  app.delete<{ Params: { category: string } }>("/prompts/:category", async (req, reply) => {
+    await c.prompts.remove(req.params.category);
+    return reply.code(204).send();
   });
 
+  // 하위 호환: 예전 단일 시스템 프롬프트 API는 general 프롬프트를 가리킨다
+  app.get("/config/system-prompt", async () => promptPayload(await c.prompts.get("general")));
   app.put("/config/system-prompt", async (req) => {
     const body = parseBody(systemPromptBody, req.body);
-    const { content, updatedAt } = await c.systemPrompt.update(body.content);
-    return { content, updated_at: p.fmt(updatedAt, tz) };
+    return promptPayload(await c.prompts.put("general", body.content));
   });
 
-  app.get<{ Querystring: { status?: string; batch_id?: string; limit?: string; cursor?: string } }>(
+  app.get("/stats", async () => {
+    const st = await c.stats.execute();
+    return { queries: st.queries, results: st.results };
+  });
+
+  app.get<{
+    Querystring: { status?: string; batch_id?: string; category?: string; search?: string; limit?: string; cursor?: string };
+  }>(
     "/queries",
     async (req) => {
       const q = req.query;
       const page = await c.listQueries.execute({
         status: q.status || undefined,
         batchId: q.batch_id || undefined,
+        category: q.category || undefined,
+        search: q.search || undefined,
         limit: numberParam("limit", q.limit),
         cursor: q.cursor || undefined,
       });
@@ -129,6 +162,15 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
       clearInterval(keepalive);
       res.end();
     }
+  });
+
+  // 저장된 질문/답변 마크다운 파일 내려받기 (답변 열람/백업용)
+  app.get<{ Params: { id: string; resultId: string } }>("/queries/:id/results/:resultId/download", async (req, reply) => {
+    const { filename, content } = await c.answerFile.execute(req.params.id, req.params.resultId);
+    return reply
+      .header("Content-Type", "text/markdown; charset=utf-8")
+      .header("Content-Disposition", `attachment; filename="${filename}"`)
+      .send(content);
   });
 
   app.post<{ Params: { id: string; resultId: string } }>("/queries/:id/results/:resultId/retry", async (req) => {

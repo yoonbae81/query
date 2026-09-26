@@ -9,12 +9,13 @@ import { CleanupExpiredResults } from "../src/application/cleanupExpiredResults"
 import { CompleteResult } from "../src/application/completeResult";
 import { FailResult } from "../src/application/failResult";
 import { GetQuery, ListQueries } from "../src/application/getQuery";
-import { ManageSystemPrompt } from "../src/application/manageSystemPrompt";
+import { ListCategories, ManagePrompts } from "../src/application/prompts";
+import { GetAnswerFile } from "../src/application/answerFile";
 import { RecordProgress } from "../src/application/recordProgress";
 import { RetryResult } from "../src/application/retryResult";
 import { SubmitQuery } from "../src/application/submitQuery";
 import { SweepLeases } from "../src/application/sweepLeases";
-import { FileSystemPrompt } from "../src/adapters/outbound/files/fileSystemPrompt";
+import { FilePromptStore } from "../src/adapters/outbound/files/filePromptStore";
 import { FileAnswerStorage } from "../src/adapters/outbound/files/fileAnswerStorage";
 import { InMemoryPresence } from "../src/adapters/outbound/presence/inMemoryPresence";
 import { SqliteQueryRepository } from "../src/adapters/outbound/sqlite/sqliteQueryRepository";
@@ -26,7 +27,7 @@ export async function makeCore(opts: { maxRetry?: number; backoff?: number; leas
   const dir = mkdtempSync(join(tmpdir(), "query-test-"));
   const repo = new SqliteQueryRepository(":memory:");
   await repo.init();
-  const promptAdapter = new FileSystemPrompt(join(dir, "config", "system_prompt.md"));
+  const promptAdapter = new FilePromptStore(join(dir, "prompts"));
   const storage = new FileAnswerStorage(join(dir, "answers"), "Asia/Seoul");
   const presence = new InMemoryPresence();
   const wakes = { count: 0 };
@@ -39,7 +40,9 @@ export async function makeCore(opts: { maxRetry?: number; backoff?: number; leas
     repo,
     presence,
     wakes,
-    prompt: new ManageSystemPrompt(promptAdapter),
+    prompts: new ManagePrompts(promptAdapter),
+    categories: new ListCategories(promptAdapter, repo),
+    answerFile: new GetAnswerFile(repo, storage),
     submit,
     addProvider: new AddProviderToQuery(repo, SUPPORTED, notifier),
     retry: new RetryResult(repo, notifier),

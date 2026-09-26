@@ -26,13 +26,13 @@ export class AskQuery {
     private readonly pollMs = 500,
   ) {}
 
-  async execute(p: { question: string; providers?: string[] | null; timeoutSeconds?: number }): Promise<AskOutcome> {
+  async execute(p: { question: string; providers?: string[] | null; timeoutSeconds?: number; category?: string | null }): Promise<AskOutcome> {
     if (p.timeoutSeconds !== undefined && !(p.timeoutSeconds > 0)) {
       throw new InvalidRequest("timeout_seconds는 0보다 커야 합니다.");
     }
     const timeout = Math.min(p.timeoutSeconds ?? this.defaultTimeoutSeconds, this.maxTimeoutSeconds);
 
-    const { query, results: created } = await this.submit.submit(p.question, p.providers, PRIORITY_HIGH);
+    const { query, results: created } = await this.submit.submit(p.question, p.providers, PRIORITY_HIGH, p.category);
     const queryId = query.id;
     const waitFor = new Set(created.filter((r) => this.presence.isProviderOnline(r.provider)).map((r) => r.id));
     const offline = created.filter((r) => !waitFor.has(r.id)).map((r) => r.provider);

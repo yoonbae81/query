@@ -46,7 +46,7 @@ describe("확장 WebSocket 프로토콜", () => {
 
   it("claim → job → progress → result로 done이 되고 다음 claim은 idle이다", async () => {
     const ext = await connect();
-    await srv.container.systemPrompt.update("SYS");
+    await srv.container.prompts.put("general", "SYS");
     const s = await srv.container.submit.submit("hello");
     ext.hello();
     await until(online);

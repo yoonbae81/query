@@ -62,6 +62,8 @@ export interface ProviderStatus {
   name: string;
   state: ProviderState;
   tabId?: number;
+  /** 탭은 있는데 상태를 확인하지 못한 이유 (진단용) */
+  detail?: string;
 }
 
 /** 팝업에 표시하는 확장 상태 */

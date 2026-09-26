@@ -1,6 +1,6 @@
 import { createElement, ExternalLink, LoaderCircle, Settings } from "lucide";
 
-import type { ConnectionStatus, ProviderState, StatusSnapshot } from "../../../domain/model";
+import type { ConnectionStatus, ProviderState, ProviderStatus, StatusSnapshot } from "../../../domain/model";
 import { requestUi, type StatusBroadcast } from "../uiProtocol";
 
 const CONNECTION_LABEL: Record<ConnectionStatus, string> = {
@@ -35,8 +35,13 @@ const icon = (node: Parameters<typeof createElement>[0], cls = "") => {
   return svg;
 };
 
+// 팝업은 상태 갱신마다 다시 그려지므로 오류 문구는 따로 보관해 다시 그릴 때도 유지한다
+let uiError = "";
+let lastStatus: StatusSnapshot | null = null;
+
 async function toggle(active: boolean): Promise<void> {
   try {
+    uiError = "";
     render(await requestUi<StatusSnapshot>({ kind: "ui", op: "setActive", active }));
   } catch (e) {
     alertError(e);
@@ -44,11 +49,37 @@ async function toggle(active: boolean): Promise<void> {
 }
 
 function alertError(e: unknown): void {
-  const box = document.getElementById("error");
-  if (box) box.textContent = e instanceof Error ? e.message : String(e);
+  uiError = e instanceof Error ? e.message : String(e);
+  if (lastStatus) render(lastStatus);
+}
+
+/** provider 한 줄: 이름, 상태 뱃지, 탭 이동 버튼, (탭과 통신이 안 될 때) 이유 */
+function providerRow(p: ProviderStatus): HTMLElement {
+  const open = () => void requestUi({ kind: "ui", op: "openProviderTab", provider: p.id }).catch(alertError);
+  const focus = () => void requestUi({ kind: "ui", op: "focusTab", tabId: p.tabId! }).catch(alertError);
+
+  // 탭이 없거나 탭과 통신이 안 되면 상태 뱃지가 곧 "열기" 버튼이다.
+  // 탭이 없으면 새 탭으로 열고, 탭이 있으면 새로고침해서 콘텐츠 스크립트를 다시 주입한다.
+  const badge =
+    p.state === "no_tab"
+      ? h("button", { class: "badge clickable st-pending", onclick: open }, p.tabId === undefined ? STATE_LABEL.no_tab : "탭 응답 없음", icon(ExternalLink))
+      : h("span", { class: `badge ${p.state === "ready" ? "st-done" : "st-pending"}` }, STATE_LABEL[p.state]);
+
+  return h(
+    "li",
+    {},
+    h(
+      "div",
+      { class: "row between" },
+      h("span", {}, p.name),
+      h("span", { class: "row" }, badge, p.tabId !== undefined ? h("button", { class: "btn small", onclick: focus }, "탭으로 이동") : null),
+    ),
+    p.detail ? h("div", { class: "detail" }, p.detail) : null,
+  );
 }
 
 function render(s: StatusSnapshot): void {
+  lastStatus = s;
   const root = document.getElementById("root")!;
   const toggleInput = h("input", { type: "checkbox", role: "switch", "aria-label": "사용", onchange: (e) => void toggle((e.target as HTMLInputElement).checked) });
   toggleInput.checked = s.active;
@@ -56,25 +87,12 @@ function render(s: StatusSnapshot): void {
   const children: (Node | null)[] = [
     h("div", { class: "row between" }, h("strong", {}, "Query"), h("label", { class: "switch" }, toggleInput, h("span", { class: "slider" }))),
     h("div", { class: "row" }, h("span", { class: `badge ${s.connection === "connected" ? "st-done" : "st-pending"}` }, CONNECTION_LABEL[s.connection])),
-    h(
-      "ul",
-      { class: "providers" },
-      ...s.providers.map((p) =>
-        h(
-          "li",
-          { class: "row between" },
-          h("span", {}, p.name),
-          h("span", { class: "row" }, h("span", { class: `badge ${p.state === "ready" ? "st-done" : "st-pending"}` }, STATE_LABEL[p.state]), p.tabId !== undefined
-            ? h("button", { class: "btn small", onclick: () => void requestUi({ kind: "ui", op: "focusTab", tabId: p.tabId! }).catch(alertError) }, "탭으로 이동")
-            : null),
-        ),
-      ),
-    ),
+    h("ul", { class: "providers" }, ...s.providers.map(providerRow)),
     s.currentJob
       ? h("div", { class: "row job" }, icon(LoaderCircle, "spin"), `${s.currentJob.provider}: ${s.currentJob.message}`)
       : null,
     s.lastError ? h("div", { class: "error" }, s.lastError) : null,
-    h("div", { id: "error", class: "error" }),
+    uiError ? h("div", { class: "error" }, uiError) : null,
     h(
       "div",
       { class: "row footer" },

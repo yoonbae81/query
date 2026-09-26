@@ -62,7 +62,7 @@ describe("claim", () => {
     const noPrompt = await c.claim.execute({ provider: "perplexity", clientId: CLIENT });
     expect(noPrompt?.prompt).toBe("Q");
 
-    await c.prompt.update("SYS");
+    await c.prompts.put("general", "SYS");
     const s2 = await c.submit.submit("Q2");
     const job = await c.claim.execute({ provider: "perplexity", clientId: CLIENT });
     expect(job?.prompt).toBe("SYS\n\n---\n\nQ2");
@@ -84,14 +84,15 @@ describe("완료/진행/실패 처리", () => {
 
   it("결과를 저장하면 done이 되고 KST 답변 파일이 생성된다", async () => {
     const c = await makeCore();
-    await c.prompt.update("SYS");
+    await c.prompts.put("general", "SYS");
     const s = await c.submit.submit("hello");
     const job = (await c.claim.execute({ provider: "perplexity", clientId: CLIENT }))!;
     expect(await c.complete.execute({ resultId: job.resultId, clientId: CLIENT, answer: "ANS", citations: ["http://src"] })).toBe(true);
 
     const r = (await c.repo.getResult(job.resultId))!;
     expect(r).toMatchObject({ status: "done", answer: "ANS", citations: ["http://src"], progressMessage: null, leaseExpiresAt: null });
-    expect(r.answerFilePath).toMatch(new RegExp(`^answers/\\d{6}_${s.query.id}_perplexity\\.md$`));
+    // 파일명에는 query_id의 q_ 접두사를 뺀다 (예: 260926_6m1vl6_perplexity.md)
+    expect(r.answerFilePath).toMatch(new RegExp(`^answers/\\d{6}_${s.query.id.replace(/^q_/, "")}_perplexity\\.md$`));
     const text = readFileSync(join(c.dir, r.answerFilePath!), "utf8");
     expect(text).toContain("## Question\nhello");
     expect(text).toContain("## System Prompt\nSYS");

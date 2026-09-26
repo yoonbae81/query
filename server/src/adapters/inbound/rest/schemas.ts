@@ -5,15 +5,18 @@ import { InvalidRequest } from "../../../domain/errors";
 // 입력 검증 (ASVS V2.2.1): 알 수 없는 필드 거부, 길이·개수 상한. 도메인 규칙(질문 길이 등)은 유스케이스가 다시 검사한다.
 const text = z.string().max(100_000);
 const providers = z.array(z.string().max(64)).max(16);
+const category = z.string().max(64);
 
 export const submitBody = z.strictObject({
   query: text,
   providers: providers.optional(),
+  category: category.optional(),
 });
 
 export const bulkBody = z.strictObject({
   queries: z.array(text).max(100),
   providers: providers.optional(),
+  category: category.optional(),
 });
 
 export const addProvidersBody = z.strictObject({ providers });
@@ -21,6 +24,7 @@ export const addProvidersBody = z.strictObject({ providers });
 export const askBody = z.strictObject({
   question: text,
   providers: providers.optional(),
+  category: category.optional(),
 });
 
 export const systemPromptBody = z.strictObject({ content: z.string().max(50_000) });

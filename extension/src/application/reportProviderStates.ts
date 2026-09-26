@@ -38,9 +38,15 @@ export class ReportProviderStates {
       try {
         const loggedIn = await this.d.site.isLoggedIn(tab, desc);
         out.push({ id: desc.id, name: desc.name, state: loggedIn ? "ready" : "login_required", tabId: tab.id });
-      } catch {
+      } catch (e) {
         // 페이지가 로딩 중이거나 콘텐츠 스크립트에 닿지 않는 경우 — 다음 갱신에서 다시 확인한다
-        out.push({ id: desc.id, name: desc.name, state: "no_tab", tabId: tab.id });
+        out.push({
+          id: desc.id,
+          name: desc.name,
+          state: "no_tab",
+          tabId: tab.id,
+          detail: e instanceof Error ? e.message : String(e),
+        });
       }
     }
     return out;

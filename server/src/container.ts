@@ -1,16 +1,17 @@
 import { ExtensionHub } from "./adapters/inbound/extension/extensionHub";
 import { FileAnswerStorage } from "./adapters/outbound/files/fileAnswerStorage";
-import { FileSystemPrompt } from "./adapters/outbound/files/fileSystemPrompt";
+import { FilePromptStore } from "./adapters/outbound/files/filePromptStore";
 import { InMemoryPresence } from "./adapters/outbound/presence/inMemoryPresence";
 import { SqliteQueryRepository } from "./adapters/outbound/sqlite/sqliteQueryRepository";
 import { AddProviderToQuery } from "./application/addProviderToQuery";
+import { GetAnswerFile, GetStats } from "./application/answerFile";
+import { ListCategories, ManagePrompts } from "./application/prompts";
 import { AskQuery } from "./application/askQuery";
 import { ClaimNextResult } from "./application/claimNextResult";
 import { CleanupExpiredResults } from "./application/cleanupExpiredResults";
 import { CompleteResult } from "./application/completeResult";
 import { FailResult } from "./application/failResult";
 import { GetQuery, ListQueries } from "./application/getQuery";
-import { ManageSystemPrompt } from "./application/manageSystemPrompt";
 import { RecordProgress } from "./application/recordProgress";
 import { RetryResult } from "./application/retryResult";
 import { SubmitQuery } from "./application/submitQuery";
@@ -37,7 +38,10 @@ export interface Container {
   ask: AskQuery;
   getQuery: GetQuery;
   listQueries: ListQueries;
-  systemPrompt: ManageSystemPrompt;
+  prompts: ManagePrompts;
+  categories: ListCategories;
+  stats: GetStats;
+  answerFile: GetAnswerFile;
   sweepLeases: SweepLeases;
   cleanup: CleanupExpiredResults;
 }
@@ -51,7 +55,7 @@ class LateNotifier implements ExtensionNotifierPort {
 }
 
 export function buildContainer(settings: Settings, repo: QueryRepositoryPort = new SqliteQueryRepository(settings.dbPath)): Container {
-  const promptAdapter = new FileSystemPrompt(settings.systemPromptPath);
+  const promptStore = new FilePromptStore(settings.promptsDir);
   const storage = new FileAnswerStorage(settings.answersDir, settings.displayTimezone);
   const presence = new InMemoryPresence();
   const notifier = new LateNotifier();
@@ -61,7 +65,7 @@ export function buildContainer(settings: Settings, repo: QueryRepositoryPort = n
   const hub = new ExtensionHub({
     repo,
     presence,
-    claim: new ClaimNextResult(repo, promptAdapter, settings.leaseSeconds),
+    claim: new ClaimNextResult(repo, promptStore, settings.leaseSeconds),
     progress: new RecordProgress(repo, settings.leaseSeconds),
     complete: new CompleteResult(repo, storage),
     fail,
@@ -82,7 +86,10 @@ export function buildContainer(settings: Settings, repo: QueryRepositoryPort = n
     ask: new AskQuery(submit, repo, presence, settings.askDefaultTimeoutSeconds, settings.askMaxTimeoutSeconds),
     getQuery: new GetQuery(repo),
     listQueries: new ListQueries(repo),
-    systemPrompt: new ManageSystemPrompt(promptAdapter),
+    prompts: new ManagePrompts(promptStore),
+    categories: new ListCategories(promptStore, repo),
+    stats: new GetStats(repo),
+    answerFile: new GetAnswerFile(repo, storage),
     sweepLeases: new SweepLeases(repo, fail),
     cleanup: new CleanupExpiredResults(repo, storage, settings.retentionDays),
   };

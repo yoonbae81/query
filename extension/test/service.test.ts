@@ -39,6 +39,40 @@ describe("연결과 hello", () => {
     expect(h.service.getStatus().lastError).toContain("서버 주소");
   });
 
+  it("설정을 저장하고 연결되면 이전 오류 메시지가 사라진다", async () => {
+    const h = makeHarness({ active: true });
+    h.store.settings.serverUrl = "";
+    await h.service.init();
+    expect(h.service.getStatus().lastError).toContain("서버 주소");
+
+    await h.service.saveSettings({ serverUrl: "http://server:8000", authToken: "", minIntervalSeconds: 10 });
+    expect(h.service.getStatus().lastError).toBeNull();
+    expect(h.gateway.connectCalls).toBe(1);
+  });
+
+  it("연결에 성공하면 남아 있던 오류 메시지를 지운다", async () => {
+    const h = makeHarness();
+    await online(h);
+    h.gateway.receive({ type: "protocol_error", message: "임대 중인 작업이 아닙니다." });
+    expect(h.service.getStatus().lastError).not.toBeNull();
+    h.gateway.open(); // 재연결
+    expect(h.service.getStatus().lastError).toBeNull();
+  });
+
+  it("새 작업을 시작하면 이전 작업의 오류 표시를 지운다", async () => {
+    const h = makeHarness();
+    await online(h);
+    h.site.failAt = { step: "submit", error: new SiteError("selector_missing", "입력창 없음") };
+    h.gateway.receive({ type: "job", result_id: "r_1", provider: "perplexity", prompt: "P", lease_seconds: 120 });
+    await settle();
+    expect(h.service.getStatus().lastError).toContain("selector_missing");
+
+    h.site.failAt = null;
+    h.gateway.receive({ type: "job", result_id: "r_2", provider: "perplexity", prompt: "P", lease_seconds: 120 });
+    await settle();
+    expect(h.service.getStatus().lastError).toBeNull();
+  });
+
   it("연결되면 탭/로그인 상태를 hello로 알린다", async () => {
     const h = makeHarness({ registry: [PERPLEXITY, CLAUDE] });
     h.tabs.tabs.set("perplexity", { id: 1, url: "https://www.perplexity.ai/" });
@@ -58,6 +92,18 @@ describe("연결과 hello", () => {
       ],
     });
     expect(h.service.getStatus().providers.map((p) => p.state)).toEqual(["ready", "login_required"]);
+  });
+
+  it("탭은 있는데 콘텐츠 스크립트와 통신이 안 되면 no_tab에 탭 ID와 이유를 남긴다", async () => {
+    const h = makeHarness();
+    h.tabs.tabs.set("perplexity", { id: 9, url: "https://www.perplexity.ai/" });
+    h.site.failAt = { step: "isLoggedIn", error: new SiteError("retryable", "콘텐츠 스크립트를 찾을 수 없습니다.") };
+    await h.service.init();
+    await h.service.setActive(true);
+    h.gateway.open();
+    await settle();
+    expect(h.service.getStatus().providers[0]).toMatchObject({ state: "no_tab", tabId: 9, detail: "콘텐츠 스크립트를 찾을 수 없습니다." });
+    expect(h.gateway.ofType("claim")).toHaveLength(0);
   });
 
   it("탭이 없으면 no_tab이다", async () => {

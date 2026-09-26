@@ -52,7 +52,8 @@ export class ExtensionService {
 
     d.gateway.onMessage((m) => this.loop.handleMessage(m));
     d.gateway.onStatusChange((connection) => {
-      this.status.update({ connection });
+      // 연결에 성공하면 이전 연결 오류(서버 주소 미설정 등)는 더 이상 유효하지 않다
+      this.status.update(connection === "connected" ? { connection, lastError: null } : { connection });
       if (connection !== "connected") this.reporter.reset();
     });
     d.gateway.onOpen(() => {
@@ -97,6 +98,7 @@ export class ExtensionService {
     const next = normalizeSettings(input);
     await this.d.store.saveSettings(next);
     this.settings = next;
+    this.status.update({ lastError: null }); // 설정을 고쳤으니 이전 오류는 지우고 다시 시도한다
     if (this.status.get().active) {
       this.d.gateway.disconnect();
       this.connectIfConfigured();

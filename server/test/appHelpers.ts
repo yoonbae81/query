@@ -29,7 +29,7 @@ export async function makeServer(env: Record<string, string> = {}, opts: { withD
   const settings = loadSettings(
     {
       DB_PATH: join(dir, "q.db"),
-      SYSTEM_PROMPT_PATH: join(dir, "config", "system_prompt.md"),
+      PROMPTS_DIR: join(dir, "prompts"),
       ANSWERS_DIR: join(dir, "answers"),
       WEB_DIST_DIR: distDir,
       ...env,

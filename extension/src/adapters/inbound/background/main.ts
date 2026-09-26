@@ -52,6 +52,20 @@ async function handle(request: UiRequest): Promise<unknown> {
       if (tab?.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true });
       return null;
     }
+    case "openProviderTab": {
+      const provider = PROVIDERS.find((p) => p.id === request.provider);
+      if (!provider) throw new Error(`지원하지 않는 provider: ${request.provider}`);
+      const existing = (await chrome.tabs.query({ url: provider.matches })).find((t) => t.id !== undefined);
+      if (existing?.id !== undefined) {
+        // 탭은 있는데 확장과 통신이 안 되는 경우(확장을 다시 로드하기 전에 열린 탭 등): 새로고침해서 콘텐츠 스크립트를 다시 주입한다
+        await chrome.tabs.reload(existing.id);
+        await chrome.tabs.update(existing.id, { active: true });
+        if (existing.windowId !== undefined) await chrome.windows.update(existing.windowId, { focused: true });
+      } else {
+        await chrome.tabs.create({ url: provider.newThreadUrl });
+      }
+      return null;
+    }
     case "openWebUi": {
       const { serverUrl } = service.getSettings();
       if (!serverUrl) throw new Error("서버 주소가 설정되지 않았습니다.");

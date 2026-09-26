@@ -10,6 +10,8 @@ export const PRIORITY_HIGH = 1;
 export interface Query {
   id: string;
   queryText: string;
+  /** 질문 카테고리. 시스템 프롬프트 선택 기준 (기본 general) */
+  category: string;
   providers: string[];
   batchId: string | null;
   createdAt: Date;

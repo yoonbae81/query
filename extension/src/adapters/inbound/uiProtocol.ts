@@ -8,6 +8,7 @@ export type UiRequest =
   | { kind: "ui"; op: "saveSettings"; settings: ExtensionSettings }
   | { kind: "ui"; op: "testConnection"; settings: ExtensionSettings }
   | { kind: "ui"; op: "focusTab"; tabId: number }
+  | { kind: "ui"; op: "openProviderTab"; provider: string }
   | { kind: "ui"; op: "openWebUi" };
 
 export type UiReply<T = unknown> = { ok: true; value: T } | { ok: false; message: string };

@@ -20,4 +20,4 @@
   const html = $derived(renderMarkdown(text));
 </script>
 
-<div class="answer">{@html html}</div>
+<div class="markdown">{@html html}</div>

@@ -17,6 +17,7 @@ export class CompleteResult {
     const path = await this.storage.save({
       queryId: query.id,
       provider: result.provider,
+      category: query.category,
       systemPrompt: result.systemPromptSnapshot ?? "",
       question: query.queryText,
       answer: { text: p.answer, citations: p.citations },

@@ -15,7 +15,8 @@ export interface Settings {
   cleanupIntervalHours: number;
   retentionDays: number;
   dbPath: string;
-  systemPromptPath: string;
+  /** 카테고리별 시스템 프롬프트 디렉터리 (<category>.md, 기본 general.md) */
+  promptsDir: string;
   answersDir: string;
   webDistDir: string;
   maxQueryLength: number;
@@ -68,8 +69,8 @@ export function loadSettings(env: Env = process.env, root: string = REPO_ROOT): 
     leaseSweepIntervalSeconds: int(env.LEASE_SWEEP_INTERVAL_SECONDS, 10),
     cleanupIntervalHours: int(env.CLEANUP_INTERVAL_HOURS, 24),
     retentionDays: int(env.RETENTION_DAYS, 7),
-    dbPath: path(env.DB_PATH, "user/query.db"),
-    systemPromptPath: path(env.SYSTEM_PROMPT_PATH, "user/config/system_prompt.md"),
+    dbPath: path(env.DB_PATH, "user/database/query.db"),
+    promptsDir: path(env.PROMPTS_DIR, "user/prompts"),
     answersDir: path(env.ANSWERS_DIR, "user/answers"),
     webDistDir: path(env.WEB_DIST_DIR, "server/web/dist"),
     maxQueryLength: int(env.MAX_QUERY_LENGTH, 4000),

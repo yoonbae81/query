@@ -4,17 +4,20 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 
 import type { Query, QueryResult, ResultStatus } from "../../../domain/entities";
 import type {
+  CategoryCount,
   ClaimParams,
   ListQueriesParams,
   QueryPage,
   QueryRepositoryPort,
   QueryWithResults,
+  Stats,
 } from "../../../domain/ports";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS queries (
     id TEXT PRIMARY KEY,
     query_text TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'general',
     batch_id TEXT,
     providers TEXT NOT NULL,
     created_at TEXT NOT NULL
@@ -53,6 +56,7 @@ function toQuery(r: Row): Query {
   return {
     id: r.id as string,
     queryText: r.query_text as string,
+    category: (r.category as string) || "general",
     providers: JSON.parse(r.providers as string) as string[],
     batchId: str(r.batch_id),
     createdAt: new Date(r.created_at as string),
@@ -116,6 +120,11 @@ export class SqliteQueryRepository implements QueryRepositoryPort {
     );
     if (!cols.has("lease_expires_at")) this.db.exec("ALTER TABLE query_results ADD COLUMN lease_expires_at TEXT");
     if (!cols.has("claimed_by")) this.db.exec("ALTER TABLE query_results ADD COLUMN claimed_by TEXT");
+    const queryCols = new Set((this.db.prepare("PRAGMA table_info(queries)").all() as Row[]).map((c) => c.name as string));
+    if (!queryCols.has("category")) {
+      this.db.exec("ALTER TABLE queries ADD COLUMN category TEXT NOT NULL DEFAULT 'general'");
+    }
+    this.db.exec("CREATE INDEX IF NOT EXISTS idx_queries_category ON queries (category, created_at DESC)");
   }
 
   private tx<T>(fn: () => T): T {
@@ -146,9 +155,10 @@ export class SqliteQueryRepository implements QueryRepositoryPort {
     this.tx(() => {
       for (const { query: q, results } of items) {
         this.run(
-          "INSERT INTO queries (id, query_text, batch_id, providers, created_at) VALUES (?, ?, ?, ?, ?)",
+          "INSERT INTO queries (id, query_text, category, batch_id, providers, created_at) VALUES (?, ?, ?, ?, ?, ?)",
           q.id,
           q.queryText,
+          q.category,
           q.batchId,
           JSON.stringify(q.providers),
           ts(q.createdAt),
@@ -199,6 +209,15 @@ export class SqliteQueryRepository implements QueryRepositoryPort {
       where.push("q.batch_id=?");
       params.push(p.batchId);
     }
+    if (p.category) {
+      where.push("q.category=?");
+      params.push(p.category);
+    }
+    if (p.search) {
+      // LIKE 와일드카드(%, _)와 이스케이프 문자(\)는 문자 그대로 검색한다
+      where.push("q.query_text LIKE ? ESCAPE '\\'");
+      params.push(`%${p.search.replace(/[\\%_]/g, "\\$&")}%`);
+    }
     if (p.cursor) {
       const c = JSON.parse(Buffer.from(p.cursor, "base64url").toString("utf8")) as {
         created_at: string;
@@ -231,6 +250,21 @@ export class SqliteQueryRepository implements QueryRepositoryPort {
       nextCursor = Buffer.from(JSON.stringify({ created_at: last.created_at, id: last.id })).toString("base64url");
     }
     return { items: queries.map((q) => ({ query: q, results: byQuery.get(q.id) ?? [] })), nextCursor };
+  }
+
+  async listCategories(): Promise<CategoryCount[]> {
+    return this.all("SELECT category, COUNT(*) AS n FROM queries GROUP BY category ORDER BY category").map((r) => ({
+      category: r.category as string,
+      count: Number(r.n),
+    }));
+  }
+
+  async stats(): Promise<Stats> {
+    const results: Stats["results"] = { pending: 0, processing: 0, done: 0, failed: 0 };
+    for (const r of this.all("SELECT status, COUNT(*) AS n FROM query_results GROUP BY status")) {
+      results[r.status as ResultStatus] = Number(r.n);
+    }
+    return { queries: Number(this.get("SELECT COUNT(*) AS n FROM queries")?.n ?? 0), results };
   }
 
   async claimNext(p: ClaimParams): Promise<QueryResult | null> {
