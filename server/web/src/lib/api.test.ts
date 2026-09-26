@@ -37,3 +37,30 @@ describe("API 토큰", () => {
     expect(getToken()).toBe("");
   });
 });
+
+describe("SSE 스트림", () => {
+  it("토큰 헤더를 붙여 연결하고 이벤트를 프레임 단위로 파싱한다(keepalive 주석은 무시)", async () => {
+    setToken("secret");
+    const enc = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(enc.encode(': keepalive\n\nevent: result_update\ndata: {"provider":"perp'));
+        c.enqueue(enc.encode('lexity","status":"done"}\n\nevent: result_added\ndata: {"provider":"gemini"}\n\n'));
+        c.close();
+      },
+    });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(body, { status: 200 }));
+    const events: [string, string][] = [];
+    await api.stream("q_1", (e, d) => events.push([e, d]), new AbortController().signal);
+    expect((fetchMock.mock.calls[0]![1]!.headers as Headers).get("Authorization")).toBe("Bearer secret");
+    expect(events).toEqual([
+      ["result_update", '{"provider":"perplexity","status":"done"}'],
+      ["result_added", '{"provider":"gemini"}'],
+    ]);
+  });
+
+  it("연결이 거절되면 예외를 던진다(호출 측이 폴링으로 대체)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(json(429, {}));
+    await expect(api.stream("q_1", () => {}, new AbortController().signal)).rejects.toThrow("스트림 연결 실패");
+  });
+});

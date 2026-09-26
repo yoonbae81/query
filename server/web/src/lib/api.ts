@@ -69,6 +69,34 @@ async function downloadFile(path: string): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * SSE 스트림을 fetch로 읽는다(EventSource는 인증 헤더를 못 붙인다). 서버가 스트림을 끝내면 정상 종료하고,
+ * 연결 실패·비정상 종료는 예외로 알린다. signal로 중단한다.
+ */
+async function streamEvents(path: string, onEvent: (event: string, data: string) => void, signal: AbortSignal): Promise<void> {
+  const res = await authFetch(apiUrl(path), { headers: { Accept: "text/event-stream" }, signal });
+  if (!res.ok || !res.body) throw new ApiError(`스트림 연결 실패 (${res.status})`);
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    buf += value;
+    let cut: number;
+    while ((cut = buf.indexOf("\n\n")) >= 0) {
+      const frame = buf.slice(0, cut);
+      buf = buf.slice(cut + 2);
+      let event = "message";
+      const data: string[] = [];
+      for (const line of frame.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) data.push(line.slice(5).trimStart());
+      }
+      if (data.length) onEvent(event, data.join("\n")); // ':' 로 시작하는 keepalive 주석은 건너뛴다
+    }
+  }
+}
+
 const enc = encodeURIComponent;
 
 export const api = {
@@ -108,6 +136,9 @@ export const api = {
   /** provider 결과 하나를 삭제한다. 마지막 결과였다면 query_deleted=true */
   deleteResult: (id: string, resultId: string) =>
     request<{ query_deleted: boolean }>(`/queries/${enc(id)}/results/${enc(resultId)}`, { method: "DELETE" }),
+  /** 질문의 결과 변경을 실시간으로 받는다(SSE) */
+  stream: (id: string, onEvent: (event: string, data: string) => void, signal: AbortSignal) =>
+    streamEvents(`/queries/${enc(id)}/stream`, onEvent, signal),
   /** 저장된 질문/답변 마크다운 파일 내려받기 */
   download: (id: string, resultId: string) => downloadFile(`/queries/${enc(id)}/results/${enc(resultId)}/download`),
 };

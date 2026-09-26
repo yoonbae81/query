@@ -7,8 +7,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Sparkles from "@lucide/svelte/icons/sparkles";
 
-  import { api, apiUrl } from "../lib/api";
-  import { getToken } from "../lib/auth";
+  import { api } from "../lib/api";
   import { fmtTime } from "../lib/format";
   import { router } from "../lib/router.svelte";
   import { app } from "../lib/stores.svelte";
@@ -53,11 +52,11 @@
     }
   }
 
-  // SSE로 실시간 갱신하고, 연결을 쓸 수 없으면 5초 폴링으로 대체한다 (PLAN §5.2)
+  // SSE(fetch 스트림, 토큰 헤더 지원)로 실시간 갱신하고, 연결을 쓸 수 없으면 5초 폴링으로 대체한다 (PLAN §5.2)
   $effect(() => {
     const queryId = id;
     if (!queryId) return;
-    let es: EventSource | undefined;
+    const ctl = new AbortController();
     let poll: ReturnType<typeof setInterval> | undefined;
     let cancelled = false;
 
@@ -65,18 +64,13 @@
       if (!poll) poll = setInterval(() => load(queryId).catch(() => {}), 5000);
     };
     const connect = () => {
-      // EventSource는 인증 헤더를 못 붙이므로 API 토큰을 쓰는 경우에는 폴링한다
-      if (!("EventSource" in window) || getToken()) return startPolling();
-      es = new EventSource(apiUrl(`/queries/${encodeURIComponent(queryId)}/stream`));
-      const onEvent = (ev: MessageEvent) => {
-        merge(JSON.parse(ev.data) as ResultEvent);
+      const onEvent = (_event: string, data: string) => {
+        merge(JSON.parse(data) as ResultEvent);
         void app.refresh(); // 헤더 집계(Queue/답변 수)도 함께 갱신
       };
-      es.addEventListener("result_update", onEvent);
-      es.addEventListener("result_added", onEvent);
-      es.onerror = () => {
-        if (es?.readyState === EventSource.CLOSED) startPolling();
-      };
+      api.stream(queryId, onEvent, ctl.signal).catch(() => {
+        if (!ctl.signal.aborted) startPolling(); // 연결을 쓸 수 없으면 폴링으로 대체
+      });
     };
 
     (async () => {
@@ -90,7 +84,7 @@
 
     return () => {
       cancelled = true;
-      es?.close();
+      ctl.abort();
       clearInterval(poll);
     };
   });
