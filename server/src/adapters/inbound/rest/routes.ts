@@ -5,6 +5,9 @@ import * as p from "./presenters";
 import { addProvidersBody, askBody, bulkBody, numberParam, parseBody, submitBody, systemPromptBody } from "./schemas";
 import { streamEvents } from "./sse";
 
+/** 동시 SSE 스트림 상한 (ASVS V2.4.1) */
+const MAX_STREAMS = 100;
+
 type IdParams = { Params: { id: string } };
 
 /** REST API (PLAN §4). basePath는 reverse proxy가 제거해서 전달하므로 라우트는 /api/v1부터다. */
@@ -98,11 +101,17 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
     return p.queryDetail(query, results, tz);
   });
 
+  let activeStreams = 0;
   app.get<IdParams>("/queries/:id/stream", async (req, reply) => {
     await c.getQuery.execute(req.params.id); // 없으면 404 (스트림 시작 전)
+    if (activeStreams >= MAX_STREAMS) {
+      return reply.code(429).send({ error: { code: "RATE_LIMITED", message: "동시 스트림 한도를 초과했습니다." } });
+    }
+    activeStreams++;
     reply.hijack();
     const res = reply.raw;
     res.writeHead(200, {
+      ...(reply.getHeaders() as Record<string, string>), // hijack 시 onRequest에서 설정한 보안 헤더 유지
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
@@ -116,6 +125,7 @@ export function registerRestRoutes(app: FastifyInstance, c: Container): void {
         res.write(`event: ${ev.event}\ndata: ${JSON.stringify(ev.data)}\n\n`);
       }
     } finally {
+      activeStreams--;
       clearInterval(keepalive);
       res.end();
     }

@@ -24,6 +24,16 @@ export interface Settings {
   displayTimezone: string;
   /** 비어 있으면 무인증 (PLAN2 §4.1, 향후 토큰 도입) */
   authToken: string;
+  /** 비어 있으면 REST(/api)·MCP 무인증. 설정 시 `Authorization: Bearer` 필수 (ASVS V8.2.1) */
+  apiToken: string;
+  /** 브라우저 Origin 허용 목록. 비어 있으면 요청 Host와 동일한 Origin만 허용 (ASVS V3.5.x, V4.4.2) */
+  allowedOrigins: string[];
+  /** 요청 본문 최대 바이트 (ASVS V2.2.x) */
+  maxBodyBytes: number;
+  /** IP당 분당 요청 한도 (ASVS V6.1.1, V2.4.1). 0이면 비활성 */
+  rateLimitPerMinute: number;
+  /** reverse proxy 뒤에서 X-Forwarded-*를 신뢰할지 */
+  trustProxy: boolean;
 }
 
 /** 저장소 루트: server/src(또는 server/dist)에서 두 단계 위 */
@@ -67,6 +77,11 @@ export function loadSettings(env: Env = process.env, root: string = REPO_ROOT): 
     askMaxTimeoutSeconds: int(env.ASK_MAX_TIMEOUT_SECONDS, 300),
     displayTimezone: env.DISPLAY_TIMEZONE || "Asia/Seoul",
     authToken: env.AUTH_TOKEN ?? "",
+    apiToken: env.API_TOKEN ?? "",
+    allowedOrigins: list(env.ALLOWED_ORIGINS, []).map((o) => o.replace(/\/+$/, "")),
+    maxBodyBytes: int(env.MAX_BODY_BYTES, 256 * 1024),
+    rateLimitPerMinute: int(env.RATE_LIMIT_PER_MINUTE, 300),
+    trustProxy: env.TRUST_PROXY === "true" || env.TRUST_PROXY === "1",
   };
 }
 

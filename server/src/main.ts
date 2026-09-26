@@ -6,6 +6,10 @@ import { buildContainer } from "./container";
 async function main(): Promise<void> {
   loadDotEnv();
   const settings = loadSettings();
+  const loopback = ["127.0.0.1", "::1", "localhost"].includes(settings.host);
+  if (!loopback && !settings.apiToken && !settings.authToken) {
+    throw new Error("QUERY_HOST가 loopback이 아닌데 API_TOKEN/AUTH_TOKEN이 없습니다. 인증 없이 외부에 노출할 수 없습니다.");
+  }
   const container = buildContainer(settings);
   await container.repo.init();
 

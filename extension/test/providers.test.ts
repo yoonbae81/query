@@ -8,7 +8,9 @@ import { SiteError } from "../src/domain/model";
 
 const FAST: PerplexityTimings = {
   inputTimeoutMs: 300,
+  submitEnableTimeoutMs: 100,
   submitConfirmTimeoutMs: 300,
+  sourcesTimeoutMs: 200,
   minWaitMs: 50,
   stableMs: 100,
   completionTimeoutMs: 1500,
@@ -105,11 +107,25 @@ describe("PerplexitySite", () => {
     let clicked = 0;
     document.querySelector("button")!.addEventListener("click", () => {
       clicked++;
-      document.body.insertAdjacentHTML("beforeend", '<div id="markdown-content-0">생성 중</div>');
+      document.body.insertAdjacentHTML("beforeend", '<div class="prose inline" data-renderer="lm">생성 중</div>');
     });
     await new PerplexitySite(document, FAST).submit("안녕");
     expect(document.getElementById("ask-input")!.textContent).toBe("안녕");
     expect(clicked).toBe(1);
+  });
+
+  it("전송 버튼은 활성화(pointer-events-none 제거)될 때까지 기다렸다가 누른다", async () => {
+    html('<div id="ask-input" contenteditable="true"></div><button aria-label="Submit" class="pointer-events-none">go</button>');
+    stubExecCommand();
+    const button = document.querySelector("button")!;
+    let clicks = 0;
+    button.addEventListener("click", () => {
+      clicks++;
+      document.body.insertAdjacentHTML("beforeend", '<div class="prose inline" data-renderer="lm">생성 중</div>');
+    });
+    setTimeout(() => button.classList.remove("pointer-events-none"), 40);
+    await new PerplexitySite(document, { ...FAST, submitEnableTimeoutMs: 500 }).submit("Q");
+    expect(clicks).toBe(1);
   });
 
   it("전송 버튼이 없으면 Enter 키로 전송한다", async () => {
@@ -134,8 +150,8 @@ describe("PerplexitySite", () => {
   });
 
   it("중지 버튼이 사라지고 답변이 안정되면 완료로 본다", async () => {
-    html('<button aria-label="Stop">stop</button><div id="markdown-content-0"></div>');
-    const answer = document.getElementById("markdown-content-0")!;
+    html('<button aria-label="Stop response (Esc)">stop</button><div class="prose inline" data-renderer="lm"></div>');
+    const answer = document.querySelector<HTMLElement>('[data-renderer="lm"]')!;
     const started = Date.now();
     let n = 0;
     const timer = setInterval(() => {
@@ -149,19 +165,45 @@ describe("PerplexitySite", () => {
   });
 
   it("답변이 끝나지 않으면 timeout", async () => {
-    html('<button aria-label="Stop">stop</button><div id="markdown-content-0">계속</div>');
+    html('<button aria-label="Stop response (Esc)">stop</button><div class="prose inline" data-renderer="lm">계속</div>');
     await expect(new PerplexitySite(document, { ...FAST, completionTimeoutMs: 200 }).waitForCompletion()).rejects.toMatchObject({ code: "timeout" });
   });
 
   it("마지막 답변을 마크다운으로, 출처는 중복 없이 외부 링크만 추출한다", async () => {
     html(
-      '<div id="markdown-content-0"><p>이전 답변</p></div>' +
-        '<div id="markdown-content-1"><h2>결론</h2><p>내용 <a href="https://a.com/x">[1]</a></p><ul><li>항목</li></ul></div>' +
+      '<div class="prose inline" data-renderer="lm"><p>이전 답변</p></div>' +
+        '<div class="prose inline" data-renderer="lm"><h2>결론</h2><p>내용 <a href="https://a.com/x">[1]</a></p><ul><li>항목</li></ul></div>' +
         '<a href="https://a.com/x">출처</a><a href="https://b.com/y">출처2</a><a href="https://www.perplexity.ai/search/z">내부</a>',
     );
     const answer = await new PerplexitySite(document, FAST).extract();
     expect(answer.text).toBe("## 결론\n\n내용 [[1]](https://a.com/x)\n\n- 항목");
     expect(answer.citations).toEqual(["https://a.com/x", "https://b.com/y"]);
+  });
+
+  it("Links 탭을 눌러 렌더링된 패널에서 출처를 수집한다(답변 안의 링크는 제외)", async () => {
+    html(
+      '<div class="prose" data-renderer="lm"><p>본문 <a href="https://inline.com/x">인라인</a></p></div>' +
+        '<div class="invisible"><button role="tab" id="r-trigger-sources">Links</button></div>' +
+        '<button role="tab" id="r-trigger-sources">Links</button>',
+    );
+    const buttons = document.querySelectorAll<HTMLElement>('button[role="tab"]');
+    let clicked = 0;
+    buttons[1]!.addEventListener("click", () => {
+      clicked++;
+      document.body.insertAdjacentHTML(
+        "beforeend",
+        '<div role="tabpanel" id="r-content-sources"><a href="https://a.com/1">A</a><a href="https://a.com/1">A2</a><a href="https://b.com/2">B</a><a href="https://www.perplexity.ai/x">내부</a></div>',
+      );
+    });
+    const answer = await new PerplexitySite(document, FAST).extract();
+    expect(clicked).toBe(1); // 보이는 탭을 누른다
+    expect(answer.citations).toEqual(["https://a.com/1", "https://b.com/2"]);
+    expect(answer.text).toBe("본문 [인라인](https://inline.com/x)");
+  });
+
+  it("Links 탭이 있어도 패널이 렌더링되지 않으면 화면의 외부 링크로 대신한다", async () => {
+    html('<div class="prose" data-renderer="lm"><p>x</p></div><button role="tab" id="r-trigger-sources">Links</button><a href="https://z.com/1">z</a>');
+    expect((await new PerplexitySite(document, FAST).extract()).citations).toEqual(["https://z.com/1"]);
   });
 
   it("답변 영역이 없으면 selector_missing", async () => {

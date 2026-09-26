@@ -5,6 +5,9 @@ import type { FastifyInstance } from "fastify";
 import type { Container } from "../../../container";
 import { createMcpServer } from "./mcpServer";
 
+/** 동시 SSE 세션 상한 (ASVS V2.4.1 자원 고갈 방지) */
+const MAX_SSE_SESSIONS = 50;
+
 const jsonRpcError = (message: string) => ({ jsonrpc: "2.0", error: { code: -32000, message }, id: null });
 
 /**
@@ -18,6 +21,7 @@ export function registerMcpRoutes(app: FastifyInstance, c: Container): void {
   const sessions = new Map<string, SSEServerTransport>();
 
   app.get("/mcp/sse", async (req, reply) => {
+    if (sessions.size >= MAX_SSE_SESSIONS) return reply.code(429).send(jsonRpcError("동시 세션 한도를 초과했습니다."));
     reply.hijack();
     const transport = new SSEServerTransport(`${c.settings.basePath}/mcp/messages`, reply.raw);
     sessions.set(transport.sessionId, transport);
@@ -27,7 +31,7 @@ export function registerMcpRoutes(app: FastifyInstance, c: Container): void {
   });
 
   app.post<{ Querystring: { sessionId?: string } }>("/mcp/messages", async (req, reply) => {
-    const transport = req.query.sessionId ? sessions.get(req.query.sessionId) : undefined;
+    const transport = req.query.sessionId && typeof req.query.sessionId === "string" ? sessions.get(req.query.sessionId) : undefined;
     if (!transport) return reply.code(400).send(jsonRpcError("유효하지 않은 sessionId입니다."));
     reply.hijack();
     await transport.handlePostMessage(req.raw, reply.raw, req.body);
