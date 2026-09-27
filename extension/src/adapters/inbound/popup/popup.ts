@@ -85,8 +85,12 @@ function render(s: StatusSnapshot): void {
   toggleInput.checked = s.active;
 
   const children: (Node | null)[] = [
-    h("div", { class: "row between" }, h("strong", {}, "Query"), h("label", { class: "switch" }, toggleInput, h("span", { class: "slider" }))),
-    h("div", { class: "row" }, h("span", { class: `badge ${s.connection === "connected" ? "st-done" : "st-pending"}` }, CONNECTION_LABEL[s.connection])),
+    h(
+      "div",
+      { class: "row between" },
+      h("span", { class: "row" }, h("strong", {}, "Query"), h("span", { class: `badge ${s.connection === "connected" ? "st-done" : "st-pending"}` }, CONNECTION_LABEL[s.connection])),
+      h("label", { class: "switch" }, toggleInput, h("span", { class: "slider" })),
+    ),
     h("ul", { class: "providers" }, ...s.providers.map(providerRow)),
     s.currentJob
       ? h("div", { class: "row job" }, icon(LoaderCircle, "spin"), `${s.currentJob.provider}: ${s.currentJob.message}`)

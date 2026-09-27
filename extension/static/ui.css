@@ -38,6 +38,7 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); ou
 .job { color: var(--processing); }
 .error { color: var(--failed); white-space: pre-wrap; }
 .ok { color: var(--done); }
+#result { flex: 1; min-width: 0; font-size: 12px; line-height: 1.4; }
 .spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
 .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-direction: row; }
 .switch input { opacity: 0; width: 0; height: 0; }
