@@ -13,9 +13,11 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main, master]
+  # Laptop-only setup for now: automatic deploy on push is paused.
+  # Manual runs from the Actions tab still work. Re-enable push to restore auto-deploy.
   workflow_dispatch:
+  # push:
+  #   branches: [main, master]
 
 permissions:
   contents: read
