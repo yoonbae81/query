@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 export interface Settings {
@@ -86,5 +86,27 @@ export function loadSettings(env: Env = process.env, root: string = REPO_ROOT): 
 /** 저장소 루트의 .env를 process.env에 로드 (이미 설정된 값은 덮어쓰지 않는다). */
 export function loadDotEnv(root: string = REPO_ROOT): void {
   const file = resolve(root, ".env");
-  if (existsSync(file)) process.loadEnvFile(file);
+  if (!existsSync(file)) return;
+  try {
+    process.loadEnvFile(file);
+  } catch (e) {
+    // Windows UTF-8 BOM, 줄바꿈(CRLF), 특수 따옴표 등 예외 시 수동 파싱 폴백
+    try {
+      const raw = readFileSync(file, "utf8").replace(/^\uFEFF/, "");
+      for (const line of raw.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eq = trimmed.indexOf("=");
+        if (eq === -1) continue;
+        const key = trimmed.slice(0, eq).trim();
+        let val = trimmed.slice(eq + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        if (process.env[key] === undefined) process.env[key] = val;
+      }
+    } catch {
+      console.warn(`.env 로드 경고: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 }

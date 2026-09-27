@@ -19,14 +19,30 @@ async function main(): Promise<void> {
   const app = await buildApp(container, { logger: true });
   const stopBackground = startBackground(container);
 
+  let shuttingDown = false;
   const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log(`${signal} 수신, 종료합니다`);
     stopBackground();
     await app.close();
     process.exit(0);
   };
+
   process.on("SIGINT", () => void shutdown("SIGINT"));
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
+
+  // Windows 콘솔 창/Ctrl+C/Ctrl+Break 종료 호환성
+  if (process.platform === "win32") {
+    try {
+      const readline = await import("node:readline");
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      rl.on("SIGINT", () => process.emit("SIGINT"));
+    } catch {
+      /* stdin이 TTY가 아닌 환경(백그라운드/서비스 등)에서는 readline 생성 실패 무시 */
+    }
+    process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
+  }
 
   await app.listen({ host: settings.host, port: settings.port });
 }

@@ -25,8 +25,12 @@ export class FileAnswerStorage implements AnswerFileStoragePort {
 
   /** DB에 저장된 상대 경로(answers/…)를 실제 경로로 바꾼다. 답변 디렉터리 밖이면 null */
   private resolveInside(path: string): string | null {
+    const targetDir = this.dir.endsWith(sep) ? this.dir : this.dir + sep;
     const full = resolve(dirname(this.dir), path);
-    return full.startsWith(this.dir + sep) ? full : null;
+    if (process.platform === "win32") {
+      return full.toLowerCase().startsWith(targetDir.toLowerCase()) ? full : null;
+    }
+    return full.startsWith(targetDir) ? full : null;
   }
 
   async save(p: {

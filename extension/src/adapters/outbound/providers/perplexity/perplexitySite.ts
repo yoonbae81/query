@@ -26,7 +26,7 @@ export const DEFAULT_TIMINGS: PerplexityTimings = {
   sourcesTimeoutMs: 3_000,
   minWaitMs: 5_000,
   stableMs: 2_000,
-  completionTimeoutMs: 180_000,
+  completionTimeoutMs: 600_000,
   pollMs: 1_000,
 };
 

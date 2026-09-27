@@ -16,7 +16,9 @@ if (major < 26) {
 
 // Windows에서 npm은 npm.cmd라 shell을 통해 실행한다
 function npm(...args) {
-  const r = spawnSync(["npm", ...args].join(" "), { stdio: "inherit", shell: true });
+  const isWin = process.platform === "win32";
+  const cmd = isWin ? "npm.cmd" : "npm";
+  const r = spawnSync(cmd, args, { stdio: "inherit", shell: isWin });
   if (r.status !== 0) {
     console.error(`실패: npm ${args.join(" ")}`);
     process.exit(r.status ?? 1);
@@ -48,8 +50,12 @@ if (!existsSync(".env")) {
   console.log("==> .env 생성 (.env.example 복사)");
 }
 
+const isWin = process.platform === "win32";
 console.log(`
 완료. 다음 단계:
   개발 실행:     npm run dev              (server: http://127.0.0.1:4444)
-  서비스 등록:   sudo scripts/install-systemd.sh  (Linux)  또는  scripts/install-launchd.sh  (macOS)
+  직접 실행:     ${isWin ? "scripts\\start.cmd" : "npm start"}
+  서비스 등록:
+    - Linux:   scripts/install-systemd.sh (user 모드 기본)
+    - macOS:   scripts/install-launchd.sh
   확장 설치:     브라우저 확장 관리 → 개발자 모드 → '압축해제된 확장 로드' → ${resolve("extension/dist")}`);
