@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.omo/
 .env
 user/
 node_modules/
