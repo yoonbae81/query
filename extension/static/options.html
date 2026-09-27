@@ -11,10 +11,10 @@
       <h1>설정</h1>
       <form onsubmit="return false">
         <label>서버 주소
-          <input id="serverUrl" type="url" autocomplete="off" />
+          <input id="serverUrl" type="url" placeholder="http://127.0.0.1:4444" autocomplete="off" />
         </label>
         <label>토큰
-          <input id="authToken" type="password" autocomplete="off" />
+          <input id="authToken" type="password" placeholder="로컬 실행 시 비워둠" autocomplete="off" />
         </label>
         <label>최소 질의 간격(초)
           <input id="minInterval" type="number" min="0" max="3600" step="1" />
