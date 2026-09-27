@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      HOST: ${{ vars.HOST || '192.168.1.4' }}
+      HOST: ${{ vars.HOST }}
       USER: ${{ vars.USER }}
       SERVICE: ${{ vars.SERVICE }}
       BUILD_CMD: ${{ vars.BUILD_CMD }}
@@ -54,6 +54,8 @@ jobs:
           SSH_KEY: ${{ secrets.SSH_KEY }}
         run: |
           set -euo pipefail
+          : "${USER:?set the USER repository variable (Settings > Secrets and variables > Actions > Variables)}"
+          : "${HOST:?set the HOST repository variable (Settings > Secrets and variables > Actions > Variables)}"
           REPO="${GITHUB_REPOSITORY##*/}"
           [[ "$REPO" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$REPO" != .* ]]
           [[ "$USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
