@@ -1,4 +1,4 @@
-/* 디자인 토큰: Retriever(/opt/retriever) UI를 따른다. 다크가 기본, data-theme="light"일 때만 라이트. */
+/* 디자인 토큰: docs/DESIGN.md 참고. 다크가 기본, data-theme="light"일 때만 라이트. */
 :root {
   color-scheme: dark;
   --bg-primary: #0b0f19;

@@ -1,10 +1,9 @@
-# 디자인 가이드라인 (Retriever · Query 공통)
+# 디자인 가이드라인
 
-Retriever(`/opt/retriever`)와 Query(이 저장소)의 웹 UI가 공유하는 디자인 언어를 다음 프로젝트에서도 그대로 재현할 수 있게 정리한 문서다. 값은 두 프로젝트의 실제 CSS에서 가져왔고, 그대로 복사해 쓸 수 있는 스타터 코드는 §12에 있다.
+Query 웹 UI의 디자인 언어를 다음 프로젝트에서도 그대로 재현할 수 있게 정리한 문서다. 값은 실제 CSS에서 가져왔고, 그대로 복사해 쓸 수 있는 스타터 코드는 §12에 있다.
 
-- 기준 구현: Retriever `src/web/lib/styles.css`, `routes/+layout.svelte`, `lib/components/*` / Query `server/web/src/app.css`, `components/*`
-- 스택: Svelte 5 + Vite(Retriever는 SvelteKit), 아이콘은 Lucide, 스타일은 CSS 변수 + 컴포넌트 스코프 CSS(CSS 프레임워크 없음)
-- 문서 안의 "Retriever 전용 / Query 전용" 표시는 프로젝트별 차이다. 표시가 없으면 공통이다.
+- 기준 구현: `server/web/src/app.css`, `server/web/src/components/*`
+- 스택: Svelte 5 + Vite, 아이콘은 Lucide, 스타일은 CSS 변수 + 컴포넌트 스코프 CSS(CSS 프레임워크 없음)
 
 ## 1. 디자인 원칙
 
@@ -70,17 +69,16 @@ Retriever(`/opt/retriever`)와 Query(이 저장소)의 웹 UI가 공유하는 �
 ### 2.5 브레이크포인트
 | 폭 | 변화 |
 |---|---|
-| `≤ 900px` (Query) | 목록/상세 2단 → **위아래로 쌓기**(페이지가 스크롤됨), 쿼리 바 세로 정렬, 헤더 pill 숨김 |
-| `≤ 768px` | **입력창 글꼴 16px**(iOS 자동 확대 방지), Retriever는 쿼리 바 세로 정렬 |
+| `≤ 900px` | 목록/상세 2단 → **위아래로 쌓기**(페이지가 스크롤됨), 쿼리 바 세로 정렬, 헤더 pill 숨김 |
+| `≤ 768px` | **입력창 글꼴 16px**(iOS 자동 확대 방지) |
 | `≤ 640px` | 모달이 하단 시트로 전환, 헤더 상태 배지·pill 숨김, 링크 폭 축소 |
-| `max-height ≤ 720px` (Retriever) | 낮은 화면에서도 쿼리 바를 세로 정렬 |
 
 ## 3. 테마 시스템 (auto / light / dark)
 
 - 모드는 세 가지: `auto`(OS 설정 추종, 기본) / `light` / `dark`. 헤더의 **아이콘 버튼 하나로 auto → light → dark 순환**하고, 아이콘은 현재 모드(Monitor / Sun / Moon)를 보여 준다. 툴팁은 "테마: 자동".
-- 저장: `localStorage`의 `<프로젝트>_theme` 키(`retriever_theme`, `query_theme`). 저장 실패(프라이버시 모드)는 무시하고 화면 전환만 한다.
+- 저장: `localStorage`의 `<프로젝트>_theme` 키(예: `query_theme`). 저장 실패(프라이버시 모드)는 무시하고 화면 전환만 한다.
 - 적용: `document.documentElement.dataset.theme = 'light' | 'dark'`. CSS는 `:root`(다크)와 `:root[data-theme="light"]` 두 벌.
-- **첫 페인트 전에 적용**해 깜빡임(FOUC)을 막는다. 보안 정책(CSP)이 인라인 스크립트를 막으면(Query) 정적 파일(`public/theme-init.js`)로 `<head>`에서 동기 로드한다.
+- **첫 페인트 전에 적용**해 깜빡임(FOUC)을 막는다. 보안 정책(CSP)이 인라인 스크립트를 막으면 정적 파일(`public/theme-init.js`)로 `<head>`에서 동기 로드한다.
 - `auto`일 때는 `matchMedia('(prefers-color-scheme: light)')`의 `change` 이벤트로 세션 중에도 반영한다.
 - `<meta name="theme-color">`도 함께 바꾼다(다크 `#0b0f19`, 라이트 `#f8fafc`).
 - 색은 **반드시 토큰**으로만 쓴다. 상태 배지처럼 토큰이 없는 색은 다크/라이트 두 벌을 §5.2처럼 함께 정의한다.
@@ -122,15 +120,14 @@ Retriever(`/opt/retriever`)와 Query(이 저장소)의 웹 UI가 공유하는 �
 
 **의미 매핑**
 - 작업 상태: `done` = green, `processing` = yellow(+ 회전 스피너 아이콘), `pending` = gray, `failed` = red.
-- 시스템 상태(Retriever): Healthy = green, 그 외 = yellow, Offline = red.
-- 카테고리/분류 = purple. 확장 연결(Query): 연결됨 = green, 대기 = yellow, 끊김 = red.
+- 카테고리/분류 = purple. 확장 연결: 연결됨 = green, 대기 = yellow, 끊김 = red.
 - "수정됨" 같은 편집 상태 = yellow. "general 적용"처럼 기본값이 적용 중이라는 표시 = gray.
 
 ### 5.3 stat pill (헤더 지표)
-`inline-flex; gap 6; 12px; 고정폭; 글자 --text-secondary; 배경 --bg-primary; padding 4px 8px; radius 4px; 1px --border`. 앞에 13px 아이콘. 예: `Queue: 2`, `Chunks: 1204`, `답변: 41`. 모바일(≤640/900)에서는 숨긴다.
+`inline-flex; gap 6; 12px; 고정폭; 글자 --text-secondary; 배경 --bg-primary; padding 4px 8px; radius 4px; 1px --border`. 앞에 13px 아이콘. 예: `Queue: 2`, `답변: 41`. 모바일(≤640/900)에서는 숨긴다.
 
 ### 5.4 칩(토글 선택)
-Query의 provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg-primary`, 1px `--border`, 글자 `--text-secondary`. **선택 시** 배경 `--bg-surface-hover`, 글자 `--text-primary`, 테두리 `--accent`. 앞에 7px 상태 점(온라인 `--success`, 아니면 `--text-muted`). 비활성(준비 중)은 흐리게 + `(준비 중)`.
+provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg-primary`, 1px `--border`, 글자 `--text-secondary`. **선택 시** 배경 `--bg-surface-hover`, 글자 `--text-primary`, 테두리 `--accent`. 앞에 7px 상태 점(온라인 `--success`, 아니면 `--text-muted`). 비활성(준비 중)은 흐리게 + `(준비 중)`.
 
 ### 5.5 입력
 - 검색 입력: 높이 40, 왼쪽에 검색 아이콘(절대 위치 left 12, 패딩-left 36), 15px.
@@ -149,34 +146,25 @@ Query의 provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg
 - 패널 헤더: **높이 48px**(필터가 줄바꿈되면 min-height), 패딩 `0 16px`, 아래 1px `--border`, 배경 `--bg-overlay`. 왼쪽: 제목(14/600) + 보조 메타(글자 수 등 12px 고정폭), 오른쪽: 복사/다운로드 같은 액션.
 - 본문 영역은 `flex: 1; overflow-y: auto; min-height: 0`으로 **패널 안에서만 스크롤**한다(페이지 자체는 스크롤하지 않는다).
 
-### 5.9 목록 항목 (Query 질의)
+### 5.9 목록 항목
 세로 flex, 패딩 `12px 16px`, 아래 1px `--border`. 1행: 질문(600, 2줄 말줄임) + 오른쪽에 상태 배지들. 2행: 답변 미리보기(13px `--text-secondary`, 2줄 말줄임). 3행: 메타(카테고리 purple 배지 + 고정폭 시각). hover 배경 `--bg-surface-hover`. 오른쪽 아래에 삭제 아이콘 버튼(hover/포커스 시 표시, §5.1 `delete-btn`). **선택 항목**은 배경 `--bg-surface-hover` + 왼쪽 3px `--accent` 안쪽 띠(`box-shadow: inset 3px 0 0`).
 
-### 5.10 표 (Retriever 문서 보관소)
-`font-size 13px; border-collapse: collapse`. 헤더 셀 `--text-muted`/500, 셀 패딩 `8px 16px`, 행 사이 1px `--border`, 세로 가운데. 이름 열은 굵게(500)·말줄임, 이름 버튼 hover 시 `--accent` + 밑줄, 숫자/경로 열은 고정폭 12px `--text-secondary`, 동작 열은 오른쪽 정렬. 빈 표는 중앙 `--text-muted` 패딩 32. 페이지네이션은 오른쪽 정렬 `‹ 1 / 12 ›`(고정폭 12px).
+### 5.10 출처 카드
+- 링크형: 배경 `--bg-primary`, 1px `--border`, 8px 라운드, 패딩 `12px 14px`. 카드에 번호(22px 원형) + 도메인(고정폭 12px) + URL(말줄임) + 외부링크 아이콘, 클릭하면 새 탭. **`http(s)`가 아닌 링크는 표시하지 않는다.**
 
-### 5.11 출처 카드
-- Retriever(펼침형): 배경 `--bg-primary`, 1px `--border`, 8px 라운드, 패딩 `12px 14px`. hover 시 테두리 `rgba(59,130,246,.4)` + 옅은 그림자, 펼치면 테두리 `.45` + 배경 `--bg-surface`. 헤더 클릭으로 펼침(파일명 버튼, 폴더 태그, 펼침 아이콘).
-  - **번호 표식**: 20×20, 4px 라운드, 고정폭 11/700, 배경 `rgba(37,99,235,.18)`, 글자 `#60a5fa`, 테두리 `rgba(59,130,246,.4)`, 옅은 글로우 `0 0 6px rgba(37,99,235,.12)`. 라이트는 `#eff6ff` / `#1d4ed8` / `#bfdbfe`.
-  - 폴더/태그: 11px 고정폭, `--bg-surface-hover` 배경, 1px 테두리, 4px 라운드, 패딩 `1px 6px`.
-  - 스니펫: 12px 고정폭 `--text-secondary`, 4줄 말줄임(펼치면 최대 280px 스크롤 박스).
-- Query(링크형): 같은 카드에 번호(22px 원형) + 도메인(고정폭 12px) + URL(말줄임) + 외부링크 아이콘, 클릭하면 새 탭. **`http(s)`가 아닌 링크는 표시하지 않는다.**
-
-### 5.12 모달
+### 5.11 모달
 - 백드롭: `position: fixed; inset: 0; background: var(--backdrop); backdrop-filter: blur(2px); z-index: 1000`, 가운데 정렬, 안전 영역 패딩. 배경 클릭·**Esc**로 닫힘.
 - 카드: 배경 `--bg-surface`, 1px `--border`, 8px 라운드, 패딩 `20px 24px 24px`(기본 폭 440), 큰 그림자.
 - 크기: 기본 440 / `lg` 860(`90vw`) / `xl` 1040~1100(`94vw`, 높이 **고정** `78~84dvh` — 내용량에 따라 모달이 흔들리지 않게).
 - 헤더: 아이콘(18) + 제목(16/600) 왼쪽, 액션 + 닫기(ghost, X 18) 오른쪽, 아래 1px 테두리, `padding-bottom 14 / margin-bottom 16`. 본문은 `overflow-y: auto; flex: 1`. 푸터는 오른쪽 정렬 버튼 `gap 8`(닫기 secondary, 확정 primary).
 - **모바일(≤640px)**: 하단 시트 — `align-items: flex-end`, 폭 100%, 상단 16px 라운드, 높이 최대 90~92dvh, 하단 안전 영역 패딩.
 
-### 5.13 토스트·배너·상태 화면
+### 5.12 토스트·배너·상태 화면
 - 토스트: 화면 아래 중앙 고정(z 1100), 배경 `--bg-surface-hover`, 1px 테두리, 8px 라운드, 패딩 `10px 16px`, 13px, 3.5초 후 사라짐. 에러는 `--danger-bg/fg/border`.
 - 에러 배너: `--danger-bg` 배경 + `--danger-fg` 글자, 패딩 `10px 14px`, 6px 라운드, 13px. 표시할 줄이 여러 개면 `white-space: pre-line`.
 - 상태 화면(패널 중앙): 아이콘 22~26px + 제목 14/500 + 필요하면 설명 12px `--text-muted`. 로딩은 스피너(`--accent`) + 진행 문구, 실패는 제목 `--danger-fg` + "다시 시도" 버튼, 빈 상태는 아이콘 + 한 줄("등록된 질의가 없습니다").
-- 진행 막대(Retriever 업로드): 높이 6, 3px 라운드, 트랙 `--bg-primary` + 1px 테두리, 채움 `--accent`.
-- 드롭존(Retriever 업로드): `2px dashed --border`, 8px 라운드, 패딩 `48px 24px`, hover/드래그 시 테두리 `--accent` + 배경 `--bg-surface-hover`, 확장자 태그는 11px 고정폭 작은 배지.
 
-### 5.14 마크다운 답변 본문
+### 5.13 마크다운 답변 본문
 14px / 1.75, 헤딩은 700 + 위 여백 `1.2em`(h1 1.35em, h2 1.2em, h3 1.07em), 문단·목록·표 사이 `.7em`, 목록 들여쓰기 `1.5em`, 인라인 코드는 고정폭 `.9em` + `--bg-surface-hover` 배경 + 4px 라운드, 코드 블록은 `--bg-primary` 배경 + 1px 테두리 + 6px 라운드 + 가로 스크롤, 인용은 왼쪽 3px `--border` + `--text-secondary`, 표는 1px 테두리·헤더 `--bg-overlay`·가로 스크롤. 링크는 `--border-focus` 색 + 밑줄(offset 2px), **항상 `target="_blank" rel="noopener noreferrer"`**. HTML은 DOMPurify로 정화한 뒤에만 렌더링한다.
 
 ## 6. 레이아웃 패턴
@@ -189,30 +177,30 @@ Query의 provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg
 │  ┌ 좌 패널 ┐ ┌ 우 패널 ─────────────┐   ← 2단 그리드, 나머지 높이 채움 │
 └──────────────────────────────────────────────────────────────────────┘
 ```
-- **폭 정책**: 본문은 **화면 폭을 모두 쓴다**(`width: 100%`, 좌우 패딩 24). 폭 상한(`max-width`)을 두지 않아 와이드/울트라와이드 모니터에서도 목록과 답변 패널이 함께 넓어진다. 2단 그리드는 비율(`0.8fr / 1.2fr`)로 늘어나므로 별도 처리가 필요 없다. Retriever는 예외로 `max-width: 1440px`(가운데 정렬)을 쓴다 — 검색 결과 패널이 너무 넓어지면 읽기 어려운 도구에는 상한을 두고, 목록·비교 중심 도구(Query)는 전체 폭을 쓴다. 상한이 필요하면 `.app-container`에 `max-width`와 `margin: 0 auto`만 추가하면 된다.
+- **폭 정책**: 본문은 **화면 폭을 모두 쓴다**(`width: 100%`, 좌우 패딩 24). 폭 상한(`max-width`)을 두지 않아 와이드/울트라와이드 모니터에서도 목록과 답변 패널이 함께 넓어진다. 2단 그리드는 비율(`0.8fr / 1.2fr`)로 늘어나므로 별도 처리가 필요 없다. 읽기 어려워지는 도구에는 상한을 둘 수 있는데, 그 경우 `.app-container`에 `max-width`와 `margin: 0 auto`만 추가하면 된다.
 - 다만 **글이 길게 이어지는 영역(답변 본문)은 패널 안에서 읽기 좋은 줄 길이**가 되도록 패널 폭 비율로 제한된다. 본문을 더 좁히려면 `.markdown`에 `max-width: 78ch`를 준다.
 - 데스크톱에서 `.app-container`는 `height: calc(100dvh - 56px - var(--sat)); overflow: hidden`이고, 그 안의 워크스페이스가 `flex: 1; min-height: 0`으로 남은 높이를 채운다. 각 패널이 자체 스크롤한다. 모바일에서는 높이 제한을 풀고 자연 스크롤.
 
 ### 6.2 헤더
 높이 `calc(56px + var(--sat))`, 배경 `--bg-surface`, 아래 1px `--border`, `position: sticky; top: 0; z-index: 100`, 좌우 패딩 `max(16px, safe-area)`.
-- **왼쪽(brand)**: 로고(마크 + 워드마크 `QUERY`/`RETRIEVER`) → 전환 링크(§5.7).
-- **오른쪽(status-bar)**: 상태 배지 → stat pill들 → 18px 세로 구분선 → 아이콘 버튼들(Retriever: 업로드·보관소·테마 + `API Key` 보조 버튼 / Query: 벌크 입력·프롬프트 관리·테마).
-- 로고 마크는 프로젝트마다 다르다: Retriever는 리트리버 견종 마크(`#C98B4B`/`#8A552F`), Query는 Lucide `message-square-text`(`--accent`). 파비콘은 둥근 사각형(라운드 8/32) 위에 마크. 새 프로젝트는 같은 구도(둥근 사각형 + 단색 마크)를 따른다.
+- **왼쪽(brand)**: 로고(마크 + 워드마크 `QUERY`) → 전환 링크(§5.7).
+- **오른쪽(status-bar)**: 상태 배지 → stat pill들 → 18px 세로 구분선 → 아이콘 버튼들(벌크 입력·프롬프트 관리·테마).
+- 로고 마크: Lucide `message-square-text`(`--accent`). 파비콘은 둥근 사각형(라운드 8/32) 위에 마크. 새 프로젝트는 같은 구도(둥근 사각형 + 단색 마크)를 따른다.
 
 ### 6.3 쿼리 바
 카드(`--bg-surface`, 1px 테두리, 8px 라운드, 패딩 `12px 16px`) 안에 한 줄: **입력(flex:1) → 파라미터/카테고리/칩 → 주 버튼**. 요소 높이는 40으로 맞추고 `gap 12`. 좁은 화면에서는 세로로 쌓고 주 버튼을 전체 폭(높이 44)으로 만든다.
 
 ### 6.4 2단 워크스페이스
-- 그리드 `grid-template-columns: 0.8fr 1.2fr`(Query는 좌측 최소 340px), `gap: 16px`. **좌: 목록/근거, 우: 상세/답변**(Retriever는 좌 "모델 답변", 우 "출처").
-- Retriever는 결과가 나온 뒤에만 그리드를 보이고 높이를 `calc(100dvh - 56px - 48px - 64px)`(최소 520)로 고정한다. Query는 처음부터 보이며 남은 높이를 채운다.
-- 좁은 화면(≤900px): 1열로 전환하고 **위아래로 쌓는다** — 쿼리 바 → 목록 → 상세 순서. Retriever도 결과 그리드를 1열로 쌓는다.
+- 그리드 `grid-template-columns: 0.8fr 1.2fr`(좌측 최소 340px), `gap: 16px`. **좌: 목록, 우: 상세/답변**.
+- 그리드는 처음부터 보이며 남은 높이를 채운다.
+- 좁은 화면(≤900px): 1열로 전환하고 **위아래로 쌓는다** — 쿼리 바 → 목록 → 상세 순서.
   - 목록은 고정 높이(`min(60dvh, 560px)`, 최소 320)의 자체 스크롤 영역, 상세는 내용만큼 자라며 **페이지 자체가 스크롤**된다(`.workspace { height: auto }`).
   - 질의를 고르면(또는 `/queries/{id}` 링크로 진입하면) **상세 위치로 부드럽게 스크롤**한다(`scrollIntoView({ block: "start" })`, 상세에 `scroll-margin-top: 68px`로 고정 헤더 아래에 맞춤). 상세가 로딩 중이어도 맨 위로 정렬되도록 선택 상태의 상세 영역에 `min-height: calc(100dvh - 80px)`을 준다.
   - 선택 전에는 빈 상세 영역(“질의를 선택하세요”)을 숨긴다. 뒤로 버튼은 두지 않는다(목록이 바로 위에 있다).
   - 선택 상태는 URL(`/queries/{id}`)에 반영해 새로고침·공유가 되게 한다.
 
 ## 7. 아이콘 (Lucide)
-- 패키지: Svelte `@lucide/svelte`(Retriever는 `lucide-svelte`). **아이콘별 deep import**를 쓴다(`import Send from "@lucide/svelte/icons/send"`). 배럴 import는 개발/테스트 변환이 수천 모듈로 느려진다.
+- 패키지: Svelte `@lucide/svelte`. **아이콘별 deep import**를 쓴다(`import Send from "@lucide/svelte/icons/send"`). 배럴 import는 개발/테스트 변환이 수천 모듈로 느려진다.
 - 크기: 배지 안 12~13, 인라인/버튼 14~16, 모달 제목·닫기 18, 상태 화면 22~26. 색은 `currentColor`를 상속(주 강조 아이콘만 `--accent` 또는 `#3b82f6`).
 - 자주 쓰는 아이콘: 검색 `search`, 전송 `send`, 복사/완료 `copy`/`check`, 다운로드 `download`, 새로고침 `refresh-cw`, 스피너 `loader-circle`(+`spin`), 닫기 `x`, 추가 `plus`, 삭제 `trash-2`, 저장 `save`, 폴더 `folder`, 업로드 `upload`, 테마 `sun`/`moon`/`monitor`, 상태 `check-circle-2`/`circle-alert`, 연결 `plug`/`unplug`, 큐 `layers`, 반짝임(AI 답변) `sparkles`, 태그(카테고리) `tag`, 외부 링크 `external-link`.
 
@@ -242,7 +230,7 @@ Query의 provider 선택: 높이 34, 패딩 `0 12px`, 13px, 9999px, 배경 `--bg
 - [ ] 라이트/다크 양쪽에서 배지·출처 번호·에러 배너 대비가 충분하다.
 
 ## 11. 브라우저 확장 UI(팝업/설정)에 적용할 때
-Query 확장은 프레임워크 없이 순수 HTML/CSS/TS이고, 같은 토큰 이름을 쓰되 **팝업은 320px 고정 폭**이다.
+확장은 프레임워크 없이 순수 HTML/CSS/TS이고, 같은 토큰 이름을 쓰되 **팝업은 320px 고정 폭**이다.
 - 토큰은 `prefers-color-scheme`으로 다크/라이트를 자동 전환한다(확장 UI에는 테마 토글이 없다).
 - 배지는 테두리 + 상태 글자색만 쓰는 단순형(배경 채움 없음): `st-done`(초록), `st-pending`(회색).
 - 토글은 40×22 스위치(켜면 초록). 모든 클릭 가능한 뱃지는 `button.badge.clickable`(hover 시 테두리·글자 `--accent`).
@@ -455,12 +443,12 @@ export const nextThemeMode = (m: ThemeMode): ThemeMode => THEME_ORDER[(THEME_ORD
 2. 로고 마크와 파비콘(둥근 사각형 + 단색 마크)을 만든다. 강조색이 다르면 `--accent`/`--accent-hover`만 바꾼다(나머지 토큰은 유지).
 3. 헤더(§12.4) → 쿼리 바/툴바 → 2단 워크스페이스(§12.5) 순서로 셸을 만든다.
 4. 상태 값을 §5.2의 배지 색에 매핑한다(완료 green, 진행 yellow, 대기 gray, 실패 red, 분류 purple).
-5. 모달은 §5.12 규격(크기 3종, 모바일 하단 시트, Esc/백드롭 닫기)으로 하나의 `Modal` 컴포넌트를 만들어 재사용한다.
+5. 모달은 §5.11 규격(크기 3종, 모바일 하단 시트, Esc/백드롭 닫기)으로 하나의 `Modal` 컴포넌트를 만들어 재사용한다.
 6. 모든 아이콘 버튼에 `aria-label`을 붙이고, 설명 문구(helper text)가 없는지 점검한다(§9).
 7. 아래 검증을 수행한다.
 
 ## 14. 검증 방법
-- **화면 확인**: Playwright(Chromium 헤드리스)로 1440×900 다크, 같은 화면 라이트(테마 버튼 클릭), 390×844 모바일(목록·상세) 스크린샷을 찍어 §10 체크리스트를 눈으로 확인한다. Query의 e2e 예시는 목록/상세/프롬프트 모달/벌크 모달/카테고리 필터/검색/다운로드/새 질문 등록을 한 번에 돈다.
+- **화면 확인**: Playwright(Chromium 헤드리스)로 1440×900 다크, 같은 화면 라이트(테마 버튼 클릭), 390×844 모바일(목록·상세) 스크린샷을 찍어 §10 체크리스트를 눈으로 확인한다. e2e 예시는 목록/상세/프롬프트 모달/벌크 모달/카테고리 필터/검색/다운로드/새 질문 등록을 한 번에 돈다.
 - **자동 테스트**: 컴포넌트는 vitest + Testing Library로 (1) 기본 선택값, (2) 제출 중 재제출 방지, (3) Enter/Shift+Enter, (4) 테마 순환·저장, (5) 마크다운 정화를 검증한다. jsdom에는 `matchMedia`, `scrollTo`가 없으므로 테스트 setup에서 스텁을 둔다.
 - **타입/접근성 검사**: `svelte-check`(경고 0 유지). 클릭 가능한 `div`에는 키보드 핸들러를 붙이거나 `<a>`/`<button>`으로 바꾼다.
 
