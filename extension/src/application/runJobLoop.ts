@@ -1,5 +1,5 @@
 import type { ServerMessage } from "../../../protocol";
-import { SiteError, type ExtensionSettings, type Job, type ProviderDescriptor } from "../domain/model";
+import { SiteError, type ExtensionSettings, type InFlightJob, type Job, type LogCategory, type ProviderDescriptor } from "../domain/model";
 import type { ClockPort, ServerGatewayPort, SiteAutomationPort, TabControllerPort } from "../domain/ports";
 import type { ReportProviderStates } from "./reportProviderStates";
 import type { StatusStore } from "./statusStore";
@@ -13,6 +13,7 @@ export interface JobLoopDeps {
   reporter: ReportProviderStates;
   clock: ClockPort;
   settings: () => ExtensionSettings;
+  log: (category: LogCategory, message: string) => void;
 }
 
 /**
@@ -24,6 +25,7 @@ export interface JobLoopDeps {
 export class RunJobLoop {
   private busyProvider: string | null = null;
   private lastFinishedAt = 0;
+  private inFlightJob: InFlightJob | null = null;
   private queue: string[] = [];
   private claimPending = false;
   private starting = false;
@@ -32,6 +34,26 @@ export class RunJobLoop {
 
   get busyProviders(): ReadonlySet<string> {
     return new Set(this.busyProvider ? [this.busyProvider] : []);
+  }
+
+  /** 영속화용: 마지막 작업 종료 시각 */
+  getLastFinishedAt(): number {
+    return this.lastFinishedAt;
+  }
+
+  /** 영속화용: 처리 중인 작업 기록(없으면 null) */
+  getInFlightJob(): InFlightJob | null {
+    return this.inFlightJob ? { ...this.inFlightJob } : null;
+  }
+
+  /**
+   * 서비스 워커 재시작 시 저장된 값을 복원한다.
+   * 처리 중이던 작업은 재개할 수 없으므로 지우고, 그 기록을 반환해 유실을 진단하게 한다(서버 임대 회수가 복구 주체다).
+   */
+  restore(snapshot: { lastFinishedAt: number; inFlightJob: InFlightJob | null }): InFlightJob | null {
+    this.lastFinishedAt = snapshot.lastFinishedAt;
+    this.inFlightJob = null;
+    return snapshot.inFlightJob;
   }
 
   private canWork(): boolean {
@@ -58,6 +80,7 @@ export class RunJobLoop {
         void this.startRound();
         return;
       case "protocol_error":
+        this.d.log("WS", message.message);
         this.d.status.update({ lastError: message.message });
         return;
       case "pong":
@@ -92,6 +115,8 @@ export class RunJobLoop {
 
   private async runJob(job: Job): Promise<void> {
     this.busyProvider = job.provider;
+    // 재시작 시 유실을 진단할 수 있게 처리 중인 작업을 기록한다(완료/실패 시 지운다)
+    this.inFlightJob = { resultId: job.resultId, provider: job.provider, startedAt: this.d.clock.now() };
     const setMessage = (message: string) =>
       this.d.status.update({ currentJob: { resultId: job.resultId, provider: job.provider, message } });
     const progress = (message: string) => {
@@ -99,6 +124,7 @@ export class RunJobLoop {
       setMessage(message);
     };
     this.d.status.update({ lastError: null }); // 새 작업을 시작하면 이전 작업의 오류 표시는 지운다
+    this.d.log("JOB", `시작 ${job.provider} ${job.resultId}`);
     setMessage("시작");
 
     try {
@@ -121,14 +147,17 @@ export class RunJobLoop {
 
       this.d.gateway.send({ type: "result", result_id: job.resultId, answer: answer.text, citations: answer.citations });
       this.d.status.update({ lastError: null });
+      this.d.log("JOB", `완료 ${job.provider} ${job.resultId}`);
     } catch (e) {
       const code = e instanceof SiteError ? e.code : "retryable";
       const message = e instanceof Error ? e.message : String(e);
       this.d.gateway.send({ type: "error", result_id: job.resultId, code, message });
       this.d.status.update({ lastError: `${code}: ${message}` });
+      this.d.log("JOB", `실패 ${code}: ${message} (${job.provider} ${job.resultId})`);
     } finally {
       this.busyProvider = null;
       this.lastFinishedAt = this.d.clock.now();
+      this.inFlightJob = null;
       this.d.status.update({ currentJob: null });
       await this.d.reporter.refresh().catch(() => {});
       void this.startRound();

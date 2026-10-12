@@ -1,6 +1,6 @@
 import type { StatusSnapshot } from "../domain/model";
 
-/** 팝업에 보여줄 확장 상태를 보관하고 변경을 알린다. */
+/** 사이드 패널에 보여줄 확장 상태를 보관하고 변경을 알린다. */
 export class StatusStore {
   private snapshot: StatusSnapshot = {
     active: false,

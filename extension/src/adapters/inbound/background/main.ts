@@ -1,5 +1,6 @@
 import { ExtensionService } from "../../../application/extensionService";
 import type { StatusSnapshot } from "../../../domain/model";
+import { ChromeSessionStore } from "../../outbound/browser/chromeSessionStore";
 import { ChromeSiteAutomation } from "../../outbound/browser/chromeSiteAutomation";
 import { ChromeStorageSettings } from "../../outbound/browser/chromeStorageSettings";
 import { ChromeTabController } from "../../outbound/browser/chromeTabController";
@@ -14,10 +15,33 @@ const service = new ExtensionService({
   tabs: new ChromeTabController(),
   site: new ChromeSiteAutomation(),
   store: new ChromeStorageSettings(),
+  session: new ChromeSessionStore(),
   clock: { now: () => Date.now(), sleep: (ms) => new Promise((r) => setTimeout(r, ms)) },
   version: chrome.runtime.getManifest().version,
 });
 const ready = service.init();
+
+/** 콘텐츠 스크립트(사이트 페이지)가 설정·토큰에 닿지 못하게 잠근다 */
+type StorageAreaWithAccessLevel = typeof chrome.storage.local & {
+  setAccessLevel?: (options: { accessLevel: "TRUSTED_CONTEXTS" | "UNTRUSTED_CONTEXTS" }) => Promise<void>;
+};
+function lockStorage(): void {
+  for (const area of [chrome.storage.local, chrome.storage.session] as StorageAreaWithAccessLevel[]) {
+    void area.setAccessLevel?.({ accessLevel: "TRUSTED_CONTEXTS" })?.catch(() => {});
+  }
+}
+
+/** 아이콘 클릭 시 팝업 대신 사이드 패널을 연다 */
+function openPanelOnActionClick(): void {
+  void chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true })?.catch(() => {});
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  lockStorage();
+  openPanelOnActionClick();
+});
+// 설치 시점을 놓친 경우(개발 중 재로드 등)를 대비해 시작할 때도 한 번 설정한다
+openPanelOnActionClick();
 
 function updateBadge(s: StatusSnapshot): void {
   const text = !s.active ? "" : s.connection === "connected" ? "ON" : "…";
@@ -30,7 +54,7 @@ service.status.subscribe((status) => {
   updateBadge(status);
   const message: StatusBroadcast = { kind: "status", status };
   chrome.runtime.sendMessage(message).catch(() => {
-    /* 열린 팝업이 없으면 수신자가 없다 */
+    /* 열린 확장 페이지(사이드 패널/설정)가 없으면 수신자가 없다 */
   });
 });
 
@@ -66,6 +90,11 @@ async function handle(request: UiRequest): Promise<unknown> {
       }
       return null;
     }
+    case "getLogs":
+      return service.getLogs();
+    case "clearLogs":
+      service.clearLogs();
+      return null;
     case "openWebUi": {
       const { serverUrl } = service.getSettings();
       if (!serverUrl) throw new Error("서버 주소가 설정되지 않았습니다.");

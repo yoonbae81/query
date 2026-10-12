@@ -66,11 +66,40 @@ export interface ProviderStatus {
   detail?: string;
 }
 
-/** 팝업에 표시하는 확장 상태 */
+/** 사이드 패널에 표시하는 확장 상태 */
 export interface StatusSnapshot {
   active: boolean;
   connection: ConnectionStatus;
   providers: ProviderStatus[];
   currentJob: { resultId: string; provider: ProviderId; message: string } | null;
   lastError: string | null;
+}
+
+/** 처리 중이던 작업의 최소 기록. 서비스 워커가 재시작돼도 남겨 유실을 진단한다 */
+export interface InFlightJob {
+  resultId: string;
+  provider: ProviderId;
+  startedAt: number;
+}
+
+/** 진단 로그 분류. 패널에서 접두어로 보인다 */
+export type LogCategory = "CONN" | "JOB" | "WS" | "STATE";
+
+export interface LogEntry {
+  at: number;
+  category: LogCategory;
+  message: string;
+}
+
+/**
+ * 서비스 워커 재시작을 넘겨 유지해야 하는 최소 상태(chrome.storage.session).
+ * 전역 변수에만 두면 SW가 종료되는 순간 사라지므로 저장소에 미러링한다.
+ */
+export interface PersistedState {
+  status: StatusSnapshot;
+  /** 마지막 작업 종료 시각 — 재시작 후에도 최소 질의 간격을 지킨다 */
+  lastFinishedAt: number;
+  /** 재시작 직전에 처리 중이던 작업. 재개할 수 없으므로 진단용으로만 남긴다 */
+  inFlightJob: InFlightJob | null;
+  logs: LogEntry[];
 }

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Query</title>
+    <link rel="stylesheet" href="../ui.css" />
+  </head>
+  <body class="sidepanel">
+    <header class="panel-header">
+      <div class="row between">
+        <span class="row">
+          <strong>Query</strong>
+          <span id="connection" class="badge st-pending" role="status" aria-live="polite">연결 중</span>
+        </span>
+        <label class="switch">
+          <input id="active" type="checkbox" role="switch" aria-label="사용" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="패널 탭">
+        <button id="tab-status" class="tab" role="tab" aria-controls="pane-status" aria-selected="true">상태</button>
+        <button id="tab-providers" class="tab" role="tab" aria-controls="pane-providers" aria-selected="false">공급자</button>
+        <button id="tab-logs" class="tab" role="tab" aria-controls="pane-logs" aria-selected="false">로그</button>
+      </nav>
+    </header>
+
+    <main id="panel-body">
+      <section id="pane-status" class="pane" role="tabpanel" aria-labelledby="tab-status">
+        <div id="job" class="card job" role="status" aria-live="polite" hidden></div>
+        <div id="error" class="card error" role="alert" hidden></div>
+        <p id="idle" class="muted">대기 중</p>
+      </section>
+
+      <section id="pane-providers" class="pane" role="tabpanel" aria-labelledby="tab-providers" hidden>
+        <ul id="providers" class="providers"></ul>
+      </section>
+
+      <section id="pane-logs" class="pane" role="tabpanel" aria-labelledby="tab-logs" hidden>
+        <div class="row between">
+          <span id="log-count" class="muted"></span>
+          <span class="row">
+            <button id="copy-logs" class="btn small" type="button">복사</button>
+            <button id="clear-logs" class="btn small" type="button">지우기</button>
+          </span>
+        </div>
+        <pre id="logs" class="logs" tabindex="0" aria-label="진단 로그"></pre>
+      </section>
+    </main>
+
+    <footer class="sticky-actions">
+      <button id="open-web" class="btn" type="button">웹 UI 열기</button>
+      <button id="open-settings" class="btn" type="button">설정</button>
+    </footer>
+
+    <script src="panel.js"></script>
+  </body>
+</html>

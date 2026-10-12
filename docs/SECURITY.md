@@ -32,7 +32,7 @@ OWASP ASVS 5.0.0을 기준으로 정리한 문서다. 기본 설정은 **로컬 
 | `TRUST_PROXY` | 리버스 프록시 뒤에서 `X-Forwarded-For`를 신뢰할 때만 `true`(rate limit의 IP 판단에 영향) |
 | `QUERY_HOST` | 기본 `127.0.0.1`. 외부 노출 시 토큰 필수(위 기동 가드) |
 
-웹 UI는 401을 받으면 토큰을 묻고 브라우저(localStorage)에 저장한다. 확장은 설정 페이지에서 입력한 토큰을 `chrome.storage`에 보관한다.
+웹 UI는 401을 받으면 토큰을 묻고 브라우저(localStorage)에 저장한다. 확장은 설정 페이지에서 입력한 토큰을 `chrome.storage`에 보관하며, **콘텐츠 스크립트(사이트 페이지)는 `setAccessLevel(TRUSTED_CONTEXTS)`로 저장소 접근이 차단된다**(설정·토큰 유출 방지).
 
 ## 외부에 노출할 때
 

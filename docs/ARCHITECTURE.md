@@ -15,7 +15,7 @@ Query의 구성과 질의 처리 흐름을 설명한다. 설치 방법은 [READM
 |---|---|
 | `server/` | Fastify 서버. REST API(`/api/v1`), MCP, 확장 WebSocket(`/ext/ws`), 웹 UI 정적 서빙. 저장소는 내장 SQLite(`node:sqlite`, WAL) |
 | `server/web/` | Svelte 5 SPA. 빌드 결과를 서버가 서빙하며, SSE로 진행 상태를 실시간 갱신한다 |
-| `extension/` | Chrome Manifest V3 확장. 서비스 워커가 서버에 WebSocket으로 접속해 작업을 가져오고, 콘텐츠 스크립트가 provider 사이트 페이지를 조작한다 |
+| `extension/` | Chrome Manifest V3 확장. 서비스 워커가 서버에 WebSocket으로 접속해 작업을 가져오고, 콘텐츠 스크립트가 provider 사이트 페이지를 조작한다. 도구 모음 아이콘은 사이드 패널을 연다 |
 | `protocol.ts` | 서버↔확장 메시지 타입(공용). 양쪽에서 같은 정의를 쓴다 |
 | `user/` | 런타임 데이터: DB(`database/query.db`), 답변 파일(`answers/`), 카테고리 프롬프트(`prompts/`) |
 
@@ -42,6 +42,14 @@ Query의 구성과 질의 처리 흐름을 설명한다. 설치 방법은 [READM
 ## 확장 프로토콜 요약
 
 `hello` / `state` / `claim` / `job` / `progress` / `result` / `error` / `wake`(새 작업 알림) / `idle` / `ping`-`pong`(임대 연장) / `protocol_error`. 메시지는 서버·확장이 Zod와 공용 타입(`protocol.ts`)으로 검증한다. 인증은 연결 시 `Authorization: Bearer` 또는 `?token=`([SECURITY.md](SECURITY.md) 참고).
+
+## 확장 UI (사이드 패널)
+
+- **작업은 서버가 주도**하므로 오케스트레이터는 백그라운드 서비스 워커에 둔다. 사이드 패널은 **관제탑**이다(상태·공급자·로그 탭). 패널을 닫아도 작업은 계속 돈다.
+- 도구 모음 아이콘은 `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })`로 사이드 패널을 연다(별도 팝업 없음).
+- 패널은 기존 상태 브로드캐스트(`runJobLoop` → `status` → `chrome.runtime.sendMessage`)와 `getStatus`/`getLogs` 요청만 쓴다. UI 계약은 `extension/src/adapters/inbound/uiProtocol.ts` 하나로 유지한다.
+- **재시작 내성**: 서비스 워커는 언제든 종료되므로 실행 상태를 전역 변수에만 두지 않는다. 상태·마지막 작업 종료 시각·처리 중 작업·진단 로그를 `chrome.storage.session`에 미러링하고, 시작할 때 복원한다. 재시작으로 처리 중이던 작업은 재개하지 않고 로그만 남기며, 복구는 서버 임대 회수(`sweepLeases`)가 맡는다.
+- 진단 로그는 링 버퍼(200건)로 `CONN`/`JOB`/`WS`/`STATE` 분류와 함께 남기고 패널에서 복사할 수 있다.
 
 ## MCP
 

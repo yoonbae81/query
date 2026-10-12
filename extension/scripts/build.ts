@@ -16,13 +16,13 @@ async function main(): Promise<void> {
 
   const common = { bundle: true, target: "chrome116", sourcemap: false, logLevel: "warning" as const };
 
-  // 서비스 워커(ES module) / 팝업·설정 페이지 / provider별 콘텐츠 스크립트(iife)
+  // 서비스 워커(ES module) / 사이드 패널·설정 페이지 / provider별 콘텐츠 스크립트(iife)
   await build({ ...common, format: "esm", entryPoints: { background: at("src/adapters/inbound/background/main.ts") }, outdir: dist });
   await build({
     ...common,
     format: "iife",
     entryPoints: {
-      "popup/popup": at("src/adapters/inbound/popup/popup.ts"),
+      "panel/panel": at("src/adapters/inbound/panel/panel.ts"),
       "options/options": at("src/adapters/inbound/options/options.ts"),
     },
     outdir: dist,
@@ -34,9 +34,9 @@ async function main(): Promise<void> {
     outdir: dist,
   });
 
-  await mkdir(resolve(dist, "popup"), { recursive: true });
+  await mkdir(resolve(dist, "panel"), { recursive: true });
   await mkdir(resolve(dist, "options"), { recursive: true });
-  await cp(at("static/popup.html"), resolve(dist, "popup/popup.html"));
+  await cp(at("static/panel.html"), resolve(dist, "panel/panel.html"));
   await cp(at("static/options.html"), resolve(dist, "options/options.html"));
   await cp(at("static/ui.css"), resolve(dist, "ui.css"));
   await cp(at("static/icons"), resolve(dist, "icons"), { recursive: true });
@@ -51,11 +51,13 @@ async function main(): Promise<void> {
     version: pkg.version,
     description: "웹서버에 쌓인 질의를 로그인된 브라우저에서 대신 질의하고 결과를 서버로 돌려줍니다.",
     minimum_chrome_version: "116",
-    permissions: ["storage", "alarms", "scripting"],
+    permissions: ["storage", "alarms", "scripting", "sidePanel"],
     host_permissions: matches,
     background: { service_worker: "background.js", type: "module" },
     icons,
-    action: { default_title: "Query", default_popup: "popup/popup.html", default_icon: icons },
+    // 아이콘 클릭 시 팝업 대신 사이드 패널을 연다(chrome.sidePanel.setPanelBehavior)
+    action: { default_title: "Query", default_icon: icons },
+    side_panel: { default_path: "panel/panel.html" },
     options_ui: { page: "options/options.html", open_in_tab: true },
     content_scripts: PROVIDERS.map((p) => ({ matches: p.matches, js: [`content/${p.id}.js`], run_at: "document_idle" })),
   };

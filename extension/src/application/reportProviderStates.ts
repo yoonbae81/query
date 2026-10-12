@@ -1,4 +1,4 @@
-import type { ProviderDescriptor, ProviderStatus } from "../domain/model";
+import type { LogCategory, ProviderDescriptor, ProviderStatus } from "../domain/model";
 import type { ServerGatewayPort, SiteAutomationPort, TabControllerPort } from "../domain/ports";
 import type { StatusStore } from "./statusStore";
 
@@ -12,6 +12,7 @@ export interface ReporterDeps {
   version: string;
   /** 작업 처리 중인 provider의 탭은 이동 중일 수 있으므로 상태를 건드리지 않는다 */
   busyProviders: () => ReadonlySet<string>;
+  log: (category: LogCategory, message: string) => void;
 }
 
 /** 지원 사이트별 탭/로그인 상태를 감지해 서버에 알린다. */
@@ -75,7 +76,10 @@ export class ReportProviderStates {
     this.d.status.update({ providers });
     const serialized = JSON.stringify(this.entries(providers));
     if (serialized === this.lastSent) return;
-    if (this.d.gateway.send({ type: "state", providers: this.entries(providers) })) this.lastSent = serialized;
+    if (this.d.gateway.send({ type: "state", providers: this.entries(providers) })) {
+      this.lastSent = serialized;
+      this.d.log("STATE", providers.map((p) => `${p.id}:${p.state}`).join(", "));
+    }
   }
 
   /** 서버가 이미 알고 있는 상태를 무효화한다(재연결 시) */

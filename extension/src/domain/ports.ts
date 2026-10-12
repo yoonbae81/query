@@ -1,5 +1,5 @@
 import type { ClientMessage, ServerMessage } from "../../../protocol";
-import type { Answer, ConnectionStatus, ExtensionSettings, ProviderDescriptor, TabRef } from "./model";
+import type { Answer, ConnectionStatus, ExtensionSettings, PersistedState, ProviderDescriptor, TabRef } from "./model";
 
 /** 서버와의 WebSocket 연결. 재연결은 어댑터가 책임진다. */
 export interface ServerGatewayPort {
@@ -50,4 +50,13 @@ export interface SettingsStorePort {
 export interface ClockPort {
   now(): number;
   sleep(ms: number): Promise<void>;
+}
+
+/**
+ * 서비스 워커 재시작을 넘겨 유지할 상태 저장소(휘발성, 브라우저 세션 한정).
+ * 설정(chrome.storage.local)과 달리 브라우저를 닫으면 사라진다.
+ */
+export interface SessionStorePort {
+  load(): Promise<PersistedState | null>;
+  save(state: PersistedState): Promise<void>;
 }

@@ -6,12 +6,14 @@ import {
   type Answer,
   type ConnectionStatus,
   type ExtensionSettings,
+  type PersistedState,
   type ProviderDescriptor,
   type TabRef,
 } from "../src/domain/model";
 import type {
   ClockPort,
   ServerGatewayPort,
+  SessionStorePort,
   SettingsStorePort,
   SiteAutomationPort,
   TabControllerPort,
@@ -158,6 +160,19 @@ export class FakeStore implements SettingsStorePort {
   }
 }
 
+/** chrome.storage.session 대역. 서비스 워커 재시작은 같은 인스턴스를 새 서비스에 넘겨 흉내낸다. */
+export class FakeSession implements SessionStorePort {
+  state: PersistedState | null = null;
+  saves = 0;
+  async load(): Promise<PersistedState | null> {
+    return this.state ? structuredClone(this.state) : null;
+  }
+  async save(state: PersistedState): Promise<void> {
+    this.saves++;
+    this.state = structuredClone(state);
+  }
+}
+
 export interface Harness {
   service: ExtensionService;
   gateway: FakeGateway;
@@ -165,14 +180,16 @@ export interface Harness {
   site: FakeSite;
   clock: FakeClock;
   store: FakeStore;
+  session: FakeSession;
 }
 
-export function makeHarness(opts: { registry?: ProviderDescriptor[]; active?: boolean } = {}): Harness {
+export function makeHarness(opts: { registry?: ProviderDescriptor[]; active?: boolean; session?: FakeSession } = {}): Harness {
   const gateway = new FakeGateway();
   const tabs = new FakeTabs();
   const site = new FakeSite();
   const clock = new FakeClock();
   const store = new FakeStore();
+  const session = opts.session ?? new FakeSession();
   store.active = opts.active ?? false;
   const service = new ExtensionService({
     registry: opts.registry ?? [PERPLEXITY],
@@ -180,10 +197,11 @@ export function makeHarness(opts: { registry?: ProviderDescriptor[]; active?: bo
     tabs,
     site,
     store,
+    session,
     clock,
     version: "test",
   });
-  return { service, gateway, tabs, site, clock, store };
+  return { service, gateway, tabs, site, clock, store, session };
 }
 
 /** 비동기 후속 처리(void 프로미스)가 끝날 때까지 기다린다 */
